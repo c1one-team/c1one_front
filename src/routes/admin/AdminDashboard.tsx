@@ -1,63 +1,65 @@
+import { useQuery } from "@tanstack/react-query";
 import { StatsCard } from "@/components/StatsCard";
-import { UserGrowthChart } from "@/components/UserGrowthChart";
 import { MembersList } from "@/components/MembersList";
 import { OnlineUsers } from "@/components/OnlineUsers";
+import api from "@/lib/axios";
 
-// Mock data - replace with actual API calls
-const mockStats = {
-    totalUsers: 12457,
-    totalPosts: 8932,
-    totalComments: 24563,
-    totalLikes: 67891
-};
+export const AdminDashboard = () => {
+    // 통계
+    const { data: rawStats, isLoading: statsLoading } = useQuery({
+        queryKey: ["admin-dashboard"],
+        queryFn: () => api.get("/api/admin/dashboard").then((res) => res.data),
+    });
 
-const mockGrowthData = [
-    { name: 'Jan', users: 400 },
-    { name: 'Feb', users: 1200 },
-    { name: 'Mar', users: 2800 },
-    { name: 'Apr', users: 4200 },
-    { name: 'May', users: 6800 },
-    { name: 'Jun', users: 9200 },
-    { name: 'Jul', users: 12457 }
-];
+    // 전체 유저
+    const { data: users, isLoading: usersLoading } = useQuery({
+        queryKey: ["admin-users"],
+        queryFn: () => api.get("/api/admin/users").then((res) => res.data),
+    });
 
-const mockMembers = [
-    { id: '1', name: 'John Doe', email: 'john@example.com', role: 'admin' as const, joinedAt: '2023-01-15', avatar: undefined },
-    { id: '2', name: 'Jane Smith', email: 'jane@example.com', role: 'moderator' as const, joinedAt: '2023-02-20', avatar: undefined },
-    { id: '3', name: 'Mike Johnson', email: 'mike@example.com', role: 'user' as const, joinedAt: '2023-03-10', avatar: undefined },
-    { id: '4', name: 'Sarah Wilson', email: 'sarah@example.com', role: 'user' as const, joinedAt: '2023-04-05', avatar: undefined },
-    { id: '5', name: 'Alex Brown', email: 'alex@example.com', role: 'moderator' as const, joinedAt: '2023-05-12', avatar: undefined }
-];
+    // 온라인 유저
+    const { data: onlineUsers, isLoading: onlineLoading } = useQuery({
+        queryKey: ["admin-online-users"],
+        queryFn: () => api.get("/api/admin/users/online").then((res) => res.data),
+    });
 
-const mockOnlineUsers = [
-    { id: '1', name: 'John Doe', lastActive: 'Just now', status: 'online' as const, avatar: undefined },
-    { id: '2', name: 'Jane Smith', lastActive: '2 min ago', status: 'online' as const, avatar: undefined },
-    { id: '3', name: 'Mike Johnson', lastActive: '5 min ago', status: 'away' as const, avatar: undefined },
-    { id: '4', name: 'Sarah Wilson', lastActive: '1 min ago', status: 'busy' as const, avatar: undefined }
-];
+    if (statsLoading || usersLoading || onlineLoading) {
+        return <p>로딩 중...</p>;
+    }
 
-export function AdminDashboard() {
+    // stats 변환
+    const stats = rawStats
+        ? {
+            totalUsers: rawStats.userCount,
+            totalPosts: rawStats.postCount,
+            totalComments: rawStats.commentCount,
+            totalLikes: rawStats.postLikeCount + rawStats.commentLikeCount,
+        }
+        : undefined;
+
     return (
-        <div className="min-h-screen bg-background p-6">
-            <div className="max-w-7xl mx-auto space-y-8">
-                {/* Header */}
-                <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-foreground mb-2">Admin Dashboard</h1>
-                    <p className="text-muted-foreground">Monitor your platform's performance and user activity</p>
-                </div>
+        <div className="space-y-6">
+            {/* Title */}
+            <div>
+                <h2 className="text-2xl font-bold text-foreground">관리자 DashBoard</h2>
+                <p className="text-muted-foreground text-sm">
+                    UNIQRAM 통계
+                </p>
+            </div>
 
-                {/* Statistics Cards */}
-                <StatsCard stats={mockStats} />
+            {/* 통계 카드 */}
+            <StatsCard stats={stats} />
 
-                {/* User Growth Chart */}
-                <UserGrowthChart data={mockGrowthData} />
+            {/* 차트 자리 (User Growth Chart 나중에 추가할 수 있음) */}
+            {/* <UserGrowthChart data={growthData} /> */}
 
-                {/* Bottom Section - Members List and Online Users */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <MembersList users={mockMembers} />
-                    <OnlineUsers users={mockOnlineUsers} />
-                </div>
+            {/* 2단 그리드로 정렬 */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <MembersList users={users} />
+                <OnlineUsers users={onlineUsers} />
             </div>
         </div>
     );
-}
+};
+
+export default AdminDashboard;

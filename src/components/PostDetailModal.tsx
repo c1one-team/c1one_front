@@ -1,12 +1,15 @@
 import React from 'react';
-import { useGetPostQuery, useGetCommentsQuery } from '@/lib/api';
+import { useGetPostDetail, deletePost } from '@/lib/postApi';
 import { PostDetailView } from './PostDetailView';
 
 export const PostDetailModal = ({ postId, onClose }) => {
-  const { data: post, isLoading: postLoading, error: postError } = useGetPostQuery(Number(postId));
-  const { data: comments, isLoading: commentsLoading } = useGetCommentsQuery(Number(postId));
+  const {
+    data: post,
+    isLoading,
+    error,
+  } = useGetPostDetail(Number(postId)); // ✅ post + comments 같이 불러오기
 
-  if (postLoading || commentsLoading) {
+  if (isLoading) {
     return (
       <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
         <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white"></div>
@@ -14,7 +17,7 @@ export const PostDetailModal = ({ postId, onClose }) => {
     );
   }
 
-  if (postError || !post) {
+  if (error || !post) {
     return (
       <div
         className="fixed inset-0 bg-black/70 flex items-center justify-center z-50"
@@ -31,15 +34,16 @@ export const PostDetailModal = ({ postId, onClose }) => {
   }
 
   return (
-    <div 
+    <div
       className="fixed inset-0 bg-black/70 flex items-center justify-center z-50"
-      onClick={onClose} // 배경 클릭 시 닫기
+      onClick={onClose}
     >
       <div
-        className="bg-white rounded-lg w-full max-w-4xl h-[80vh] flex"
-        onClick={(e) => e.stopPropagation()} // 모달 안쪽 클릭 막기
+        className="bg-white rounded-lg w-full max-w-4xl h-[80vh] flex relative"
+        onClick={(e) => e.stopPropagation()}
       >
-        <PostDetailView post={post} comments={comments || []} onClose={onClose} />
+        {/* 게시물 상세 뷰 */}
+        <PostDetailView post={post} onClose={onClose} />
       </div>
     </div>
   );

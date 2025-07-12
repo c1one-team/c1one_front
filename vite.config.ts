@@ -12,6 +12,11 @@ export default defineConfig(({ mode }) => ({
     strictPort: true, // 포트 고정
     cors: true, // CORS 활성화
     proxy: {
+      '/ws-chat': {
+      target: 'ws://localhost:8080',
+      ws: true,
+      changeOrigin: true,
+      },
       '/api': {
         target: 'http://localhost:8080',
         changeOrigin: true,
@@ -36,5 +41,8 @@ export default defineConfig(({ mode }) => ({
   // 개발 환경에서 더 나은 에러 처리
   build: {
     sourcemap: mode === 'development',
+  },
+  define: {
+    global: 'window',
   },
 }));

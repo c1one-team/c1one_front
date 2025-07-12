@@ -34,9 +34,29 @@ export interface CommentResponse {
     postId: number;
   }
 
+  export interface UserPostResponse {
+    postId: number;
+    representativeImageUrl: string;
+  }
+  
+  export interface PageResponse<T> {
+    content: T[];
+    pageable: any; // 필요하면 더 구체화
+    totalPages: number;
+    totalElements: number;
+    last: boolean;
+    size: number;
+    number: number;
+    sort: any;
+    first: boolean;
+    numberOfElements: number;
+    empty: boolean;
+  }
+
+  // 팔로잉한 사람의 게시물 조회
   export const getFollowingRecentPosts = async (): Promise<HomePostResponse[]> => {
     try {
-      const response = await axios.get('/home/following');
+      const response = await axios.get('/posts/home/following');
       console.log('response.data:', response.data);
       return response.data;
     } catch (error) {
@@ -50,4 +70,58 @@ export const useGetFollowingRecentPosts = () => {
     queryKey: ['followingRecentPosts'],
     queryFn: getFollowingRecentPosts,
   });
+};
+
+
+// 유저의 게시물(대표사진) 조회
+export const useGetUserPosts = (
+  userId: number | undefined,
+  page = 0,
+  size = 10
+) => {
+  return useQuery<PageResponse<UserPostResponse>>({
+    queryKey: ['userPosts', userId, page],
+    queryFn: async () => {
+      const response = await axios.get(`/api/posts/profile/${userId}`, {
+        params: { page, size },
+      });
+      console.log('✅ 요청 URL:', response.config.url);
+      console.log('✅ 실제 응답:', response.data);
+      return response.data;
+    },
+    enabled: !!userId,  // ✅ userId 있을 때만 실행
+  });
+};
+
+
+// 게시물 상세정보 조회
+export const getPostDetail = async (postId: number): Promise<HomePostResponse> => {
+  try {
+    const response = await axios.get(`/api/posts/${postId}`);
+    console.log('😅 response:', response);
+    return response.data;
+  } catch (error) {
+    console.error('❌ axios error:', error);
+    if (error.response) {
+      console.error('❌ server responded with:', error.response.data);
+    }
+    throw error;
+  }
+};
+
+export const useGetPostDetail = (postId: number | undefined) => {
+  return useQuery<HomePostResponse>({
+    queryKey: ['postDetail', postId],
+    queryFn: async () => {
+      if (postId === undefined) throw new Error('postId is undefined');
+      return getPostDetail(postId);
+    },
+    enabled: !!postId,
+  });
+};
+
+// 게시물 삭제
+export const deletePost = async (postId: number) => {
+  const response = await axios.delete(`/api/posts/${postId}`);
+  return response.data;
 };

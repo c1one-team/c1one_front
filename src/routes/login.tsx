@@ -20,10 +20,10 @@ const LoginPage: React.FC = () => {
     const navigate = useNavigate();
     const dispatch = useDispatch();
 
-    
+
     // API 클라이언트 인스턴스 생성 (토큰 인터셉터가 설정된 axios 사용)
     const apiClient = new Api(customAxiosInstance);
-    
+
 
     const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>();
     const [showPassword, setShowPassword] = useState(false);
@@ -33,13 +33,13 @@ const LoginPage: React.FC = () => {
     const onSubmit = async (data: LoginForm) => {
         try {
             setIsLoading(true);
-            
+
             // 🗑️ 로그인 시작 전에 기존 인증 정보 제거 (새로운 토큰을 받기 위해)
             console.log('🗑️ 기존 토큰 및 사용자 정보 제거 중...');
             removeToken(); // localStorage에서 기존 토큰 제거
             localStorage.removeItem('currentUsername'); // localStorage에서 기존 currentUsername 제거
             dispatch(clearUser()); // Redux에서 기존 사용자 정보 제거
-            
+
             // Swagger API 사용
             const signinData: SigninRequest = {
                 username: data.username,
@@ -48,33 +48,34 @@ const LoginPage: React.FC = () => {
 
 
             console.log('🔄 로그인 요청 데이터:', signinData);
-            
+
             const response = await apiClient.api.signin(signinData);
-            
+
             console.log('📥 로그인 응답 전체:', response);
             console.log('📥 응답 상태:', response.status);
-            
+
             // 200 OK 응답 확인
             if (response.status === 200 && response.data) {
                 const responseData = response.data as any;
-                
+
                 // 1. message를 console에 출력
                 if (responseData.message) {
                     console.log('📧 백엔드 메시지:', responseData.message);
                 }
-                
+
                 // 2. accessToken을 JWT 토큰으로 설정
-                if (responseData.accessToken) {
+                if (responseData.accessToken && responseData.user) {
+                    const user = responseData.user;
                     setToken(responseData.accessToken);
                     console.log('✅ JWT 토큰 localStorage에 저장 완료');
                     console.log('🔑 새로운 토큰 받아옴:', responseData.accessToken.substring(0, 20) + '...');
-                    
+
                     // 🔒 HTTP Only 쿠키 + localStorage 혼합 사용
                     // - 백엔드: HTTP-only 쿠키로 토큰 설정 (보안상 안전, XSS 공격 방지)
                     // - 프론트엔드: localStorage에도 토큰 저장 (API 요청 시 Authorization 헤더용)
                     // - axios는 withCredentials: true로 HTTP-only 쿠키 자동 포함
                     console.log('🍪 백엔드에서 HTTP-only 쿠키도 설정됨 (withCredentials: true로 자동 포함)');
-                    
+
                     // Redux 상태 업데이트 (slice 사용)
                     // 백엔드 응답에서 사용자 정보 추출
                     const userInfo = responseData.user || {};
@@ -86,6 +87,7 @@ const LoginPage: React.FC = () => {
                         username: currentUsername, // 백엔드 응답 우선, 없으면 입력값 사용
                         profileImage: userInfo.profileImage || 'https://via.placeholder.com/50x50/4ECDC4/FFFFFF?text=USER',
                         role: userInfo.role || 'USER' // 백엔드 응답에서 실제 사용자 역할 사용
+
                     }));
                     
                                           // localStorage에도 currentUsername 저장
@@ -99,18 +101,18 @@ const LoginPage: React.FC = () => {
                     });
                     console.log('✅ currentUsername으로 저장된 username:', currentUsername);
                     console.log('✅ Redux 상태 업데이트 완료');
-                    
+
                     // 3. redirectUrl 무시하고 index.tsx로 리다이렉트
                     console.log('🚫 redirectUrl 무시:', responseData.redirectUrl);
-                    
+
                     toast.success('로그인에 성공했습니다!', {
                         id: 'login-success',
                         duration: 3000,
                     });
-                    
+
                     // index.tsx로 리다이렉트 (/ 경로)
                     navigate('/');
-                    
+
                 } else {
                     console.error('❌ accessToken이 응답에 없습니다:', responseData);
                     toast.error('서버 응답에 토큰이 없습니다.', {
@@ -125,34 +127,44 @@ const LoginPage: React.FC = () => {
                     duration: 3000,
                 });
             }
-            
+
         } catch (error: any) {
-            console.error('🚫 로그인 오류:', error);
-            
-            // 401 Unauthorized 에러 처리
-            if (error?.response?.status === 401) {
-                const failureMessage = error?.response?.data?.message;
-                console.log('🚫 401 로그인 실패 메시지:', failureMessage);
-                
-                // 기존 로그인 실패 메시지 처리 로직 사용
-                toast.error(failureMessage || '로그인에 실패했습니다.', {
-                    id: 'login-error',
-                    duration: 3000,
-                });
-            } else {
-                // 기타 에러 처리
-                const errorMessage = 
-                    error?.response?.data?.message || 
-                    error?.data?.message || 
-                    error?.message || 
-                    '로그인에 실패했습니다.';
-                    
-                toast.error(errorMessage, {
-                    id: 'login-error',
-                    duration: 3000,
-                });
-            }
-        } finally {
+        console.error('🚫 로그인 오류:', error);
+
+        const status = error?.response?.status;
+        const failureMessage = error?.response?.data?.message;
+
+        if (status === 401) {
+            console.log('🚫 401 로그인 실패 메시지:', failureMessage);
+            toast.error(failureMessage || '로그인에 실패했습니다.', {
+                id: 'login-error',
+                duration: 3000,
+            });
+        }
+
+        // ✅ 정지된 계정 응답 처리 (403 Forbidden)
+        else if (status === 403) {
+            console.log('🚫 403 Forbidden - 블랙리스트:', failureMessage);
+            toast.error('🚫 해당 계정은 관리자에 의해 정지되었습니다.', {
+                id: 'blacklist-error',
+                duration: 3000,
+            });
+        }
+
+        // ✅ 그 외의 에러 처리
+        else {
+            const errorMessage =
+                failureMessage ||
+                error?.data?.message ||
+                error?.message ||
+                '로그인에 실패했습니다.';
+
+            toast.error(errorMessage, {
+                id: 'login-error',
+                duration: 3000,
+            });
+        }
+    } finally {
             setIsLoading(false);
 
         }

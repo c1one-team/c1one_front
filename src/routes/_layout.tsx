@@ -12,7 +12,7 @@ import AuthWrapper from '@/components/AuthWrapper';
 const Layout = () => {
   return (
     <AuthWrapper>
-      <div className="flex h-screen bg-gray-50">
+      <div className="flex h-screen bg-black">
         <Sidebar />
         <main className="flex-1 overflow-hidden">
           <Outlet />

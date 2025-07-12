@@ -1,16 +1,30 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, FileText, MessageCircle, Heart } from "lucide-react";
 
+interface Stats {
+    totalUsers: number;
+    totalPosts: number;
+    totalComments: number;
+    totalLikes: number;
+}
+
 interface StatsCardProps {
-    stats: {
-        totalUsers: number;
-        totalPosts: number;
-        totalComments: number;
-        totalLikes: number;
-    };
+    stats?: Stats; // optional 처리
 }
 
 export function StatsCard({ stats }: StatsCardProps) {
+    if (!stats) {
+        return (
+            <Card className="shadow-lg border-0">
+                <CardHeader>
+                    <CardTitle className="text-lg font-semibold text-foreground">
+                        통계 데이터를 불러올 수 없습니다.
+                    </CardTitle>
+                </CardHeader>
+            </Card>
+        );
+    }
+
     const statItems = [
         {
             title: "Total Users",

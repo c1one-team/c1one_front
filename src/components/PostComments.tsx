@@ -1,19 +1,35 @@
-
 import React, { useState } from 'react';
 import { Heart, MoreHorizontal } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { Post, Comment } from '@/lib/api';
+import { HomePostResponse, CommentResponse, deletePost } from '@/lib/postApi';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface PostCommentsProps {
-  post: Post;
-  comments: Comment[];
+  post: HomePostResponse;
+  comments: CommentResponse[];
+  onClose: () => void; // ✅ 모달 닫기 함수 추가
 }
 
-export const PostComments: React.FC<PostCommentsProps> = ({ post, comments }) => {
-  const [liked, setLiked] = useState(post.isLiked || false);
+export const PostComments: React.FC<PostCommentsProps> = ({ post, comments, onClose }) => {
+  const [liked, setLiked] = useState(post.likedByMe || false);
   const [likesCount, setLikesCount] = useState(post.likeCount || 0);
   const [newComment, setNewComment] = useState('');
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const queryClient = useQueryClient();
+
+  const deleteMutation = useMutation({
+    mutationFn: () => deletePost(post.postId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['userPosts'] });
+      alert('삭제 완료');
+      onClose(); // ✅ 모달 닫기
+    },
+    onError: (err) => {
+      alert('삭제 실패: ' + err.message);
+    },
+  });
 
   const handleLike = () => {
     setLiked(!liked);
@@ -28,44 +44,76 @@ export const PostComments: React.FC<PostCommentsProps> = ({ post, comments }) =>
     }
   };
 
+  const handleDelete = () => {
+    if (confirm('정말 삭제하시겠습니까?')) {
+      deleteMutation.mutate();
+    }
+  };
+
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full relative">
       {/* Post Header */}
-      <div className="flex items-center justify-between p-4 border-b border-instagram-border">
+      <div className="flex items-center justify-between p-4 border-b border-instagram-border relative">
         <div className="flex items-center space-x-3">
           <div className="w-8 h-8 story-ring rounded-full p-0.5">
             <div className="w-full h-full bg-instagram-dark rounded-full p-0.5">
               <img
-                src={post.user.profileImage || 'https://via.placeholder.com/32'}
-                alt={post.user.username}
+                src={'https://via.placeholder.com/32'}
+                alt={post.username}
                 className="w-full h-full rounded-full object-cover"
               />
             </div>
           </div>
           <div>
             <div className="flex items-center space-x-1">
-              <span className="font-semibold text-sm text-instagram-text">{post.user.username}</span>
+              <span className="font-semibold text-sm text-instagram-text">{post.username}</span>
               <span className="text-instagram-muted">•</span>
               <span className="text-sm text-instagram-muted">방금 전</span>
             </div>
           </div>
         </div>
-        <button className="text-instagram-muted hover:text-instagram-text">
+
+        {/* 점세개 버튼 */}
+        <button
+          className="text-instagram-muted hover:text-instagram-text"
+          onClick={(e) => {
+            e.stopPropagation();
+            setMenuOpen((prev) => !prev);
+          }}
+        >
           <MoreHorizontal size={20} />
         </button>
+
+        {/* 메뉴 팝업 */}
+        {menuOpen && (
+          <div className="absolute top-10 right-4 bg-white border rounded shadow p-2 z-50">
+            <button
+              className="block w-full text-left px-4 py-2 hover:bg-gray-100"
+              onClick={() => alert('수정하기는 아직 미구현입니다')}
+            >
+              수정하기
+            </button>
+            <button
+              className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-500"
+              onClick={handleDelete}
+            >
+              삭제하기
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Post Caption */}
       <div className="p-4 border-b border-instagram-border">
         <div className="flex items-start space-x-3">
           <img
-            src={post.user.profileImage || 'https://via.placeholder.com/32'}
-            alt={post.user.username}
+            src={'https://via.placeholder.com/32'}
+            alt={post.username}
             className="w-8 h-8 rounded-full object-cover flex-shrink-0"
           />
           <div className="flex-1">
             <div className="text-sm">
-              <span className="font-semibold text-instagram-text mr-2">{post.user.username}</span>
+              <span className="font-semibold text-instagram-text mr-2">{post.username}</span>
               <span className="text-instagram-text whitespace-pre-wrap">{post.content}</span>
             </div>
             <div className="mt-2 text-xs text-instagram-muted">방금 전</div>
@@ -93,15 +141,15 @@ export const PostComments: React.FC<PostCommentsProps> = ({ post, comments }) =>
         <div className="space-y-4 p-4">
           {comments.length > 0 ? (
             comments.map((comment) => (
-              <div key={comment.id} className="flex items-start space-x-3">
+              <div key={comment.userId} className="flex items-start space-x-3">
                 <img
-                  src={comment.user.profileImage || 'https://via.placeholder.com/32'}
-                  alt={comment.user.username}
+                  src={'https://via.placeholder.com/32'}
+                  alt={comment.userName}
                   className="w-8 h-8 rounded-full object-cover flex-shrink-0"
                 />
                 <div className="flex-1">
                   <div className="text-sm">
-                    <span className="font-semibold text-instagram-text mr-2">{comment.user.username}</span>
+                    <span className="font-semibold text-instagram-text mr-2">{comment.userName}</span>
                     <span className="text-instagram-text">{comment.content}</span>
                   </div>
                   <div className="flex items-center space-x-4 mt-1">
@@ -146,4 +194,3 @@ export const PostComments: React.FC<PostCommentsProps> = ({ post, comments }) =>
     </div>
   );
 };
-
