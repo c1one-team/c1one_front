@@ -35,6 +35,7 @@ const ApiTest = () => {
         { postId: 3, content: '더미 게시물 3', username: 'user3' }
       ];
       
+      console.log('🧪 HARDCODED: dummyPosts 변수에 하드코딩된 더미 게시물 데이터 설정:', dummyPosts);
       setStatus(`✅ 더미 데이터 성공! 게시물 ${dummyPosts.length}개 로드됨`);
       console.log('✅ 더미 API 테스트 성공:', dummyPosts);
       

@@ -32,6 +32,7 @@ export const RightPanel = () => {
         setSuggestedUsers(users);
       } catch (err) {
         console.error('❌ 백엔드 API 실패, 더미 데이터 사용:', err);
+        console.log('🧪 HARDCODED: suggestedUsers 변수에 하드코딩된 더미 사용자 데이터 설정:', dummyUsers);
         setSuggestedUsers(dummyUsers);
         setError('백엔드 연결 실패 - 더미 데이터 사용 중');
       } finally {
@@ -71,22 +72,32 @@ export const RightPanel = () => {
       </div>
 
       <div className="space-y-3">
-        {suggestedUsers.map((user, index) => (
-          <div key={index} className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <img
-                className="w-10 h-10 rounded-full object-cover"
-                src="https://via.placeholder.com/40"
-                alt={user.username}
-              />
-              <div>
-                <div className="text-sm font-semibold">{user.username}</div>
-                <div className="text-xs text-gray-400">회원님을 위한 추천</div>
-              </div>
-            </div>
-            <button className="text-blue-400 text-xs font-semibold hover:text-blue-500">팔로우</button>
+        {loading ? (
+          <div className="text-center py-4">
+            <div className="text-sm text-gray-400">로딩 중...</div>
           </div>
-        ))}
+        ) : error ? (
+          <div className="text-center py-4">
+            <div className="text-sm text-red-400">{error}</div>
+          </div>
+        ) : (
+          suggestedUsers.map((user, index) => (
+            <div key={index} className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <img
+                  className="w-10 h-10 rounded-full object-cover"
+                  src="https://via.placeholder.com/40"
+                  alt={user.username}
+                />
+                <div>
+                  <div className="text-sm font-semibold">{user.username}</div>
+                  <div className="text-xs text-gray-400">회원님을 위한 추천</div>
+                </div>
+              </div>
+              <button className="text-blue-400 text-xs font-semibold hover:text-blue-500">팔로우</button>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );

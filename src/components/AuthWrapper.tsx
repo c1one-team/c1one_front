@@ -85,12 +85,14 @@ const AuthWrapper: React.FC<AuthWrapperProps> = ({ children }) => {
           console.log('🧪 Development: Auth bypassed - No JWT required');
           // 이미 사용자가 설정되어 있지 않을 때만 설정
           if (!user) {
-            dispatch(setUser({
+            const devUser = {
               id: 1,
               username: 'dev-user',
-              email: 'dev@example.com',
-              profileImage: 'https://via.placeholder.com/50x50/4ECDC4/FFFFFF?text=DEV'
-            }));
+              profileImage: 'https://via.placeholder.com/50x50/4ECDC4/FFFFFF?text=DEV',
+              role: 'USER'
+            };
+            console.log('🧪 HARDCODED: user 변수에 하드코딩된 개발 사용자 정보 설정:', devUser);
+            dispatch(setUser(devUser));
           }
           setIsChecking(false);
           return;
@@ -119,12 +121,14 @@ const AuthWrapper: React.FC<AuthWrapperProps> = ({ children }) => {
 
           // 유효한 JWT가 있으면 사용자 정보 설정 (이미 설정되어 있지 않을 때만)
           if (!user) {
-            dispatch(setUser({
+            const testUser = {
               id: 1,
               username: 'test-user',
-              email: 'test@example.com',
-              profileImage: 'https://via.placeholder.com/50x50/96CEB4/FFFFFF?text=TEST'
-            }));
+              profileImage: 'https://via.placeholder.com/50x50/96CEB4/FFFFFF?text=TEST',
+              role: 'USER'
+            };
+            console.log('🧪 HARDCODED: user 변수에 하드코딩된 테스트 사용자 정보 설정:', testUser);
+            dispatch(setUser(testUser));
           }
           setIsChecking(false);
           return;
@@ -175,12 +179,14 @@ const AuthWrapper: React.FC<AuthWrapperProps> = ({ children }) => {
 
           // 유효한 JWT가 있으면 사용자 정보 설정
           if (!user) {
-            dispatch(setUser({
+            const authRequiredUser = {
               id: 1,
               username: 'auth-required-user',
-              email: 'auth@example.com',
-              profileImage: 'https://via.placeholder.com/50x50/FF6B6B/FFFFFF?text=AUTH'
-            }));
+              profileImage: 'https://via.placeholder.com/50x50/FF6B6B/FFFFFF?text=AUTH',
+              role: 'USER'
+            };
+            console.log('🧪 HARDCODED: user 변수에 하드코딩된 인증 필요 사용자 정보 설정:', authRequiredUser);
+            dispatch(setUser(authRequiredUser));
           }
           setIsChecking(false);
           return;
@@ -189,12 +195,14 @@ const AuthWrapper: React.FC<AuthWrapperProps> = ({ children }) => {
         // ✅ 인증된 사용자 처리
         if (!user && (isAuthenticated || getToken())) {
           // 사용자 정보가 없지만 토큰이 있으면 기본 사용자 정보 설정
-          dispatch(setUser({
+          const authenticatedUser = {
             id: 1,
             username: 'authenticated-user',
-            email: 'user@example.com',
-            profileImage: 'https://via.placeholder.com/50x50/FF6B6B/FFFFFF?text=USER'
-          }));
+            profileImage: 'https://via.placeholder.com/50x50/FF6B6B/FFFFFF?text=USER',
+            role: 'USER'
+          };
+          console.log('🧪 HARDCODED: user 변수에 하드코딩된 인증된 사용자 정보 설정:', authenticatedUser);
+          dispatch(setUser(authenticatedUser));
         }
 
         setIsChecking(false);

@@ -93,6 +93,7 @@ export default function HomePage() {
       console.error('❌ 백엔드 API 실패, 더미 데이터 사용:', err);
       
       // 백엔드 실패 시 더미 데이터 사용
+      console.log('🧪 HARDCODED: posts 변수에 하드코딩된 더미 데이터 설정:', dummyPosts);
       setPosts(dummyPosts);
       setUsingDummyData(true);
       

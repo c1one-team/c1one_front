@@ -10,6 +10,17 @@
  * ---------------------------------------------------------------
  */
 
+export interface BlockResponse {
+  /** @format int64 */
+  id?: number;
+  /** @format int64 */
+  blockerUserId?: number;
+  /** @format int64 */
+  blockedUserId?: number;
+  /** @format date-time */
+  blockedAt?: string;
+}
+
 export interface PostCreateRequest {
   content?: string;
   location?: string;
@@ -110,6 +121,8 @@ export interface ChatMessageResponse {
   message?: string;
   /** @format date-time */
   createdAt?: string;
+  /** @format date-time */
+  modifiedAt?: string;
   isRead?: boolean;
 }
 
@@ -142,17 +155,29 @@ export interface Cookie {
    * @format int32
    */
   version?: number;
+  domain?: string;
   /** @format int32 */
   maxAge?: number;
-  secure?: boolean;
   httpOnly?: boolean;
-  domain?: string;
+  secure?: boolean;
 }
 
 export interface SignupRequest {
+  /**
+   * @minLength 2
+   * @maxLength 20
+   */
   username: string;
+  /**
+   * @minLength 6
+   * @maxLength 100
+   */
   password: string;
   confirmPassword: string;
+}
+
+export interface SimpleResponse {
+  message?: string;
 }
 
 export interface UserSummaryResponse {
@@ -161,17 +186,6 @@ export interface UserSummaryResponse {
   username?: string;
   role?: string;
   blacklisted?: boolean;
-}
-
-export interface PostUpdateRequest {
-  content?: string;
-  location?: string;
-  remainImageUrls?: string[];
-  newImageUrls?: string[];
-}
-
-export interface CommentUpdateRequest {
-  content?: string;
 }
 
 export interface ProfileUpdateRequestDto {
@@ -190,6 +204,8 @@ export interface ProfileUpdateRequestDto {
 export interface ProfileResponseDto {
   /** @format int64 */
   id?: number;
+  /** @format int64 */
+  userId?: number;
   /**
    * @minLength 0
    * @maxLength 255
@@ -200,6 +216,46 @@ export interface ProfileResponseDto {
    * @maxLength 255
    */
   profileImageUrl?: string;
+}
+
+export interface PostUpdateRequest {
+  content?: string;
+  location?: string;
+  remainImageUrls?: string[];
+  newImageUrls?: string[];
+}
+
+export interface CommentUpdateRequest {
+  content?: string;
+}
+
+export interface SuccessResponseString {
+  /** @format int32 */
+  status?: number;
+  message?: string;
+  data?: string;
+}
+
+export interface FollowDto {
+  /** @format int64 */
+  profileId?: number;
+  /** @format int64 */
+  userId?: number;
+  username?: string;
+  profileImageUrl?: string;
+  bio?: string;
+}
+
+export interface UserSearchResultDto {
+  /** @format int64 */
+  userid?: number;
+  username?: string;
+}
+
+export interface SearchHistoryDto {
+  /** @format int64 */
+  userid?: number;
+  searchKeyword?: string;
 }
 
 export interface CommentListResponse {
@@ -242,10 +298,10 @@ export interface PostDetailResponse {
 }
 
 export interface PageUserPostResponse {
-  /** @format int64 */
-  totalElements?: number;
   /** @format int32 */
   totalPages?: number;
+  /** @format int64 */
+  totalElements?: number;
   /** @format int32 */
   size?: number;
   content?: UserPostResponse[];
@@ -265,17 +321,17 @@ export interface PageableObject {
   offset?: number;
   sort?: SortObject;
   /** @format int32 */
+  pageNumber?: number;
+  /** @format int32 */
   pageSize?: number;
   paged?: boolean;
-  /** @format int32 */
-  pageNumber?: number;
   unpaged?: boolean;
 }
 
 export interface SortObject {
   empty?: boolean;
-  unsorted?: boolean;
   sorted?: boolean;
+  unsorted?: boolean;
 }
 
 export interface UserPostResponse {
@@ -337,46 +393,6 @@ export interface SuccessResponseListBookmarkPostResponse {
   data?: BookmarkPostResponse[];
 }
 
-export interface SuccessResponseString {
-  /** @format int32 */
-  status?: number;
-  message?: string;
-  data?: string;
-}
-
-export interface FollowDto {
-  /** @format int64 */
-  profileId?: number;
-  /** @format int64 */
-  userId?: number;
-  username?: string;
-  profileImageUrl?: string;
-  bio?: string;
-}
-
-export interface UserSearchResultDto {
-  /** @format int64 */
-  userid?: number;
-  username?: string;
-}
-
-export interface SearchHistoryDto {
-  /** @format int64 */
-  userid?: number;
-  searchKeyword?: string;
-}
-
-export interface ActiveUser {
-  /** @format int64 */
-  userId?: number;
-  username?: string;
-  /** @format date-time */
-  loginTime?: string;
-  ipAddress?: string;
-  /** @format date-time */
-  lastAccessTime?: string;
-}
-
 export interface DashboardResponse {
   /** @format int64 */
   userCount?: number;
@@ -392,15 +408,24 @@ export interface DashboardResponse {
   onlineUserCount?: number;
 }
 
+export interface ActiveUser {
+  /** @format int64 */
+  userId?: number;
+  username?: string;
+  /** @format date-time */
+  loginTime?: string;
+  ipAddress?: string;
+  /** @format date-time */
+  lastAccessTime?: string;
+}
+
 import type {
   AxiosInstance,
   AxiosRequestConfig,
-  AxiosResponse,
   HeadersDefaults,
   ResponseType,
 } from "axios";
 import axios from "axios";
-import customAxiosInstance from "@/lib/axios"; // customAxiosInstance 임포트
 
 export type QueryParamsType = Record<string | number, any>;
 
@@ -449,18 +474,15 @@ export class HttpClient<SecurityDataType = unknown> {
   private secure?: boolean;
   private format?: ResponseType;
 
-  constructor(
-    {
-      securityWorker,
-      secure,
-      format,
-      ...axiosConfig
-    }: ApiConfig<SecurityDataType> = {},
-    axiosInstance?: AxiosInstance // AxiosInstance를 선택적으로 주입받도록 추가
-  ) {
-    this.instance = axiosInstance || axios.create({
+  constructor({
+    securityWorker,
+    secure,
+    format,
+    ...axiosConfig
+  }: ApiConfig<SecurityDataType> = {}) {
+    this.instance = axios.create({
       ...axiosConfig,
-      baseURL: axiosConfig.baseURL || "", // 빈 문자열로 변경하여 URL 중복 방지
+      baseURL: axiosConfig.baseURL || "http://localhost:8080",
     });
     this.secure = secure;
     this.format = format;
@@ -530,7 +552,7 @@ export class HttpClient<SecurityDataType = unknown> {
     format,
     body,
     ...params
-  }: FullRequestParams): Promise<AxiosResponse<T>> => {
+  }: FullRequestParams): Promise<T> => {
     const secureParams =
       ((typeof secure === "boolean" ? secure : this.secure) &&
         this.securityWorker &&
@@ -557,17 +579,19 @@ export class HttpClient<SecurityDataType = unknown> {
       body = JSON.stringify(body);
     }
 
-    return this.instance.request({
-      ...requestParams,
-      headers: {
-        ...(requestParams.headers || {}),
-        ...(type ? { "Content-Type": type } : {}),
-      },
-      params: query,
-      responseType: responseFormat,
-      data: body,
-      url: path,
-    });
+    return this.instance
+      .request({
+        ...requestParams,
+        headers: {
+          ...(requestParams.headers || {}),
+          ...(type ? { "Content-Type": type } : {}),
+        },
+        params: query,
+        responseType: responseFormat,
+        data: body,
+        url: path,
+      })
+      .then((response) => response.data);
   };
 }
 
@@ -581,385 +605,23 @@ export class HttpClient<SecurityDataType = unknown> {
 export class Api<
   SecurityDataType extends unknown,
 > extends HttpClient<SecurityDataType> {
-  constructor(axiosInstance?: AxiosInstance) { // 생성자에 axiosInstance 추가
-    super({}, axiosInstance || customAxiosInstance); // customAxiosInstance를 기본값으로 전달
-  }
-  posts = {
-    /**
-     * No description
-     *
-     * @tags post-controller
-     * @name CreatePost
-     * @request POST:/posts
-     * @secure
-     */
-    createPost: (data: PostCreateRequest, params: RequestParams = {}) =>
-      this.request<SuccessResponsePostResponse, any>({
-        path: `/posts`,
-        method: "POST",
-        body: data,
-        secure: true,
-        type: ContentType.Json,
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags post-controller
-     * @name LikePost
-     * @request POST:/posts/{postId}/like
-     * @secure
-     */
-    likePost: (postId: number, params: RequestParams = {}) =>
-      this.request<PostLikeResponse, any>({
-        path: `/posts/${postId}/like`,
-        method: "POST",
-        secure: true,
-        ...params,
-      }),
-
-    /**
-     * @description 특정 게시글에 달린 모든 댓글을 조회합니다.
-     *
-     * @tags post-comment-controller
-     * @name GetComments
-     * @summary 게시글의 전체 댓글 조회
-     * @request GET:/posts/{postId}/comments
-     * @secure
-     */
-    getComments: (postId: number, params: RequestParams = {}) =>
-      this.request<CommentListResponse[], any>({
-        path: `/posts/${postId}/comments`,
-        method: "GET",
-        secure: true,
-        ...params,
-      }),
-
-    /**
-     * @description 특정 게시글에 새 댓글을 작성합니다.
-     *
-     * @tags post-comment-controller
-     * @name CreateComment
-     * @summary 게시글에 댓글 작성
-     * @request POST:/posts/{postId}/comments
-     * @secure
-     */
-    createComment: (
-      postId: number,
-      data: CommentCreateRequest,
-      params: RequestParams = {},
-    ) =>
-      this.request<SuccessResponseCommentResponse, any>({
-        path: `/posts/${postId}/comments`,
-        method: "POST",
-        body: data,
-        secure: true,
-        type: ContentType.Json,
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags post-controller
-     * @name GetPostDetail
-     * @request GET:/posts/{postId}
-     * @secure
-     */
-    getPostDetail: (postId: number, params: RequestParams = {}) =>
-      this.request<PostDetailResponse, any>({
-        path: `/posts/${postId}`,
-        method: "GET",
-        secure: true,
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags post-controller
-     * @name DeletePost
-     * @request DELETE:/posts/{postId}
-     * @secure
-     */
-    deletePost: (postId: number, params: RequestParams = {}) =>
-      this.request<void, any>({
-        path: `/posts/${postId}`,
-        method: "DELETE",
-        secure: true,
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags post-controller
-     * @name UpdatePost
-     * @request PATCH:/posts/{postId}
-     * @secure
-     */
-    updatePost: (
-      postId: number,
-      data: PostUpdateRequest,
-      params: RequestParams = {},
-    ) =>
-      this.request<PostResponse, any>({
-        path: `/posts/${postId}`,
-        method: "PATCH",
-        body: data,
-        secure: true,
-        type: ContentType.Json,
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags post-controller
-     * @name GetUserPosts
-     * @request GET:/posts/profile/{userId}
-     * @secure
-     */
-    getUserPosts: (
-      userId: number,
-      query?: {
-        /**
-         * @format int32
-         * @default 0
-         */
-        page?: number;
-        /**
-         * @format int32
-         * @default 10
-         */
-        size?: number;
-      },
-      params: RequestParams = {},
-    ) =>
-      this.request<PageUserPostResponse, any>({
-        path: `/posts/profile/${userId}`,
-        method: "GET",
-        query: query,
-        secure: true,
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags post-controller
-     * @name GetRecommendedPosts
-     * @request GET:/posts/home/recommend
-     * @secure
-     */
-    getRecommendedPosts: (params: RequestParams = {}) =>
-      this.request<HomePostResponse[], any>({
-        path: `/posts/home/recommend`,
-        method: "GET",
-        secure: true,
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags post-controller
-     * @name GetFollowingRecentPosts
-     * @request GET:/posts/home/following
-     * @secure
-     */
-    getFollowingRecentPosts: (params: RequestParams = {}) =>
-      this.request<HomePostResponse[], any>({
-        path: `/api/posts/home/following`,
-        method: "GET",
-        secure: true,
-        ...params,
-      }),
-  };
-  comments = {
-    /**
-     * @description 특정 댓글에 좋아요를 합니다.
-     *
-     * @tags comment-controller
-     * @name LikeComment
-     * @summary 댓글 좋아요
-     * @request POST:/comments/{commentId}/like
-     * @secure
-     */
-    likeComment: (commentId: number, params: RequestParams = {}) =>
-      this.request<CommentLikeResponse, CommentLikeResponse>({
-        path: `/comments/${commentId}/like`,
-        method: "POST",
-        secure: true,
-        ...params,
-      }),
-
-    /**
-     * @description 특정 댓글을 삭제합니다.
-     *
-     * @tags comment-controller
-     * @name DeleteComment
-     * @summary 댓글 삭제
-     * @request DELETE:/comments/{commentId}
-     * @secure
-     */
-    deleteComment: (commentId: number, params: RequestParams = {}) =>
-      this.request<void, void>({
-        path: `/comments/${commentId}`,
-        method: "DELETE",
-        secure: true,
-        ...params,
-      }),
-
-    /**
-     * @description 특정 댓글을 수정합니다.
-     *
-     * @tags comment-controller
-     * @name UpdateComment
-     * @summary 댓글 수정
-     * @request PATCH:/comments/{commentId}
-     * @secure
-     */
-    updateComment: (
-      commentId: number,
-      data: CommentUpdateRequest,
-      params: RequestParams = {},
-    ) =>
-      this.request<CommentResponse, CommentResponse>({
-        path: `/comments/${commentId}`,
-        method: "PATCH",
-        body: data,
-        secure: true,
-        type: ContentType.Json,
-        ...params,
-      }),
-  };
-  chatrooms = {
-    /**
-     * No description
-     *
-     * @tags chat-room-controller
-     * @name GetMyChatRooms
-     * @request GET:/chatrooms
-     * @secure
-     */
-    getMyChatRooms: (params: RequestParams = {}) =>
-      this.request<ChatRoomList[], any>({
-        path: `/chatrooms`,
-        method: "GET",
-        secure: true,
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags chat-room-controller
-     * @name CreateChatRoom
-     * @request POST:/chatrooms
-     * @secure
-     */
-    createChatRoom: (data: ChatRoomCreateRequest, params: RequestParams = {}) =>
-      this.request<ChatRoomCreateResponse, any>({
-        path: `/chatrooms`,
-        method: "POST",
-        body: data,
-        secure: true,
-        type: ContentType.Json,
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags chat-room-controller
-     * @name GetChatMessages
-     * @request GET:/chatrooms/{chatRoomId}/messages
-     * @secure
-     */
-    getChatMessages: (
-      chatRoomId: number,
-      query?: {
-        /**
-         * @format int32
-         * @default 0
-         */
-        offset?: number;
-        /**
-         * @format int32
-         * @default 20
-         */
-        limit?: number;
-      },
-      params: RequestParams = {},
-    ) =>
-      this.request<ChatMessageList[], any>({
-        path: `/chatrooms/${chatRoomId}/messages`,
-        method: "GET",
-        query: query,
-        secure: true,
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags chat-room-controller
-     * @name SendMessage
-     * @request POST:/chatrooms/{chatRoomId}/messages
-     * @secure
-     */
-    sendMessage: (
-      chatRoomId: number,
-      data: ChatMessageRequeset,
-      params: RequestParams = {},
-    ) =>
-      this.request<ChatMessageResponse, any>({
-        path: `/chatrooms/${chatRoomId}/messages`,
-        method: "POST",
-        body: data,
-        secure: true,
-        type: ContentType.Json,
-        ...params,
-      }),
-  };
-  bookmarks = {
-    /**
-     * No description
-     *
-     * @tags bookmark-controller
-     * @name GetMyBookmarks
-     * @request GET:/bookmarks
-     * @secure
-     */
-    getMyBookmarks: (params: RequestParams = {}) =>
-      this.request<SuccessResponseListBookmarkPostResponse, any>({
-        path: `/bookmarks`,
-        method: "GET",
-        secure: true,
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags bookmark-controller
-     * @name Bookmark
-     * @request POST:/bookmarks
-     * @secure
-     */
-    bookmark: (data: BookmarkRequest, params: RequestParams = {}) =>
-      this.request<SuccessResponseBoolean, any>({
-        path: `/bookmarks`,
-        method: "POST",
-        body: data,
-        secure: true,
-        type: ContentType.Json,
-        ...params,
-      }),
-  };
   api = {
+    /**
+     * No description
+     *
+     * @tags block-controller
+     * @name BlockUser
+     * @request POST:/api/users/{userId}/block
+     * @secure
+     */
+    blockUser: (userId: number, params: RequestParams = {}) =>
+      this.request<BlockResponse, any>({
+        path: `/api/users/${userId}/block`,
+        method: "POST",
+        secure: true,
+        ...params,
+      }),
+
     /**
      * No description
      *
@@ -1008,6 +670,219 @@ export class Api<
     ) =>
       this.request<string[], any>({
         path: `/api/s3`,
+        method: "POST",
+        body: data,
+        secure: true,
+        type: ContentType.Json,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags post-controller
+     * @name CreatePost
+     * @request POST:/api/posts
+     * @secure
+     */
+    createPost: (data: PostCreateRequest, params: RequestParams = {}) =>
+      this.request<SuccessResponsePostResponse, any>({
+        path: `/api/posts`,
+        method: "POST",
+        body: data,
+        secure: true,
+        type: ContentType.Json,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags post-controller
+     * @name LikePost
+     * @request POST:/api/posts/{postId}/like
+     * @secure
+     */
+    likePost: (postId: number, params: RequestParams = {}) =>
+      this.request<PostLikeResponse, any>({
+        path: `/api/posts/${postId}/like`,
+        method: "POST",
+        secure: true,
+        ...params,
+      }),
+
+    /**
+     * @description 특정 게시글에 달린 모든 댓글을 조회합니다.
+     *
+     * @tags post-comment-controller
+     * @name GetComments
+     * @summary 게시글의 전체 댓글 조회
+     * @request GET:/api/posts/{postId}/comments
+     * @secure
+     */
+    getComments: (postId: number, params: RequestParams = {}) =>
+      this.request<CommentListResponse[], any>({
+        path: `/api/posts/${postId}/comments`,
+        method: "GET",
+        secure: true,
+        ...params,
+      }),
+
+    /**
+     * @description 특정 게시글에 새 댓글을 작성합니다.
+     *
+     * @tags post-comment-controller
+     * @name CreateComment
+     * @summary 게시글에 댓글 작성
+     * @request POST:/api/posts/{postId}/comments
+     * @secure
+     */
+    createComment: (
+      postId: number,
+      data: CommentCreateRequest,
+      params: RequestParams = {},
+    ) =>
+      this.request<SuccessResponseCommentResponse, any>({
+        path: `/api/posts/${postId}/comments`,
+        method: "POST",
+        body: data,
+        secure: true,
+        type: ContentType.Json,
+        ...params,
+      }),
+
+    /**
+     * @description 특정 댓글에 좋아요를 합니다.
+     *
+     * @tags comment-controller
+     * @name LikeComment
+     * @summary 댓글 좋아요
+     * @request POST:/api/comments/{commentId}/like
+     * @secure
+     */
+    likeComment: (commentId: number, params: RequestParams = {}) =>
+      this.request<CommentLikeResponse, CommentLikeResponse>({
+        path: `/api/comments/${commentId}/like`,
+        method: "POST",
+        secure: true,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags chat-room-controller
+     * @name GetMyChatRooms
+     * @request GET:/api/chatrooms
+     * @secure
+     */
+    getMyChatRooms: (params: RequestParams = {}) =>
+      this.request<ChatRoomList[], any>({
+        path: `/api/chatrooms`,
+        method: "GET",
+        secure: true,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags chat-room-controller
+     * @name CreateChatRoom
+     * @request POST:/api/chatrooms
+     * @secure
+     */
+    createChatRoom: (data: ChatRoomCreateRequest, params: RequestParams = {}) =>
+      this.request<ChatRoomCreateResponse, any>({
+        path: `/api/chatrooms`,
+        method: "POST",
+        body: data,
+        secure: true,
+        type: ContentType.Json,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags chat-room-controller
+     * @name GetChatMessages
+     * @request GET:/api/chatrooms/{chatRoomId}/messages
+     * @secure
+     */
+    getChatMessages: (
+      chatRoomId: number,
+      query?: {
+        /**
+         * @format int32
+         * @default 0
+         */
+        offset?: number;
+        /**
+         * @format int32
+         * @default 20
+         */
+        limit?: number;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<ChatMessageList[], any>({
+        path: `/api/chatrooms/${chatRoomId}/messages`,
+        method: "GET",
+        query: query,
+        secure: true,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags chat-room-controller
+     * @name SendMessage
+     * @request POST:/api/chatrooms/{chatRoomId}/messages
+     * @secure
+     */
+    sendMessage: (
+      chatRoomId: number,
+      data: ChatMessageRequeset,
+      params: RequestParams = {},
+    ) =>
+      this.request<ChatMessageResponse, any>({
+        path: `/api/chatrooms/${chatRoomId}/messages`,
+        method: "POST",
+        body: data,
+        secure: true,
+        type: ContentType.Json,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags bookmark-controller
+     * @name GetMyBookmarks
+     * @request GET:/api/bookmarks
+     * @secure
+     */
+    getMyBookmarks: (params: RequestParams = {}) =>
+      this.request<SuccessResponseListBookmarkPostResponse, any>({
+        path: `/api/bookmarks`,
+        method: "GET",
+        secure: true,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags bookmark-controller
+     * @name Bookmark
+     * @request POST:/api/bookmarks
+     * @secure
+     */
+    bookmark: (data: BookmarkRequest, params: RequestParams = {}) =>
+      this.request<SuccessResponseBoolean, any>({
+        path: `/api/bookmarks`,
         method: "POST",
         body: data,
         secure: true,
@@ -1074,12 +949,44 @@ export class Api<
      * @secure
      */
     signup: (data: SignupRequest, params: RequestParams = {}) =>
-      this.request<string, any>({
+      this.request<SimpleResponse, any>({
         path: `/api/auth/join`,
         method: "POST",
         body: data,
         secure: true,
         type: ContentType.Json,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags admin-user-controller
+     * @name UnblacklistUserById
+     * @request POST:/api/admin/users/unblacklist/{userId}
+     * @secure
+     */
+    unblacklistUserById: (userId: number, params: RequestParams = {}) =>
+      this.request<UserSummaryResponse, any>({
+        path: `/api/admin/users/unblacklist/${userId}`,
+        method: "POST",
+        secure: true,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags admin-user-controller
+     * @name BlacklistUserById
+     * @request POST:/api/admin/users/blacklist/{userId}
+     * @secure
+     */
+    blacklistUserById: (userId: number, params: RequestParams = {}) =>
+      this.request<UserSummaryResponse, any>({
+        path: `/api/admin/users/blacklist/${userId}`,
+        method: "POST",
+        secure: true,
         ...params,
       }),
 
@@ -1112,6 +1019,167 @@ export class Api<
     patchProfile: (data: ProfileUpdateRequestDto, params: RequestParams = {}) =>
       this.request<ProfileResponseDto, any>({
         path: `/api/users/profiles`,
+        method: "PATCH",
+        body: data,
+        secure: true,
+        type: ContentType.Json,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags profile-controller
+     * @name UpdateProfileImage
+     * @request PATCH:/api/users/profiles/image
+     * @secure
+     */
+    updateProfileImage: (
+      data: {
+        /** @format binary */
+        profileImage: File;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<ProfileResponseDto, any>({
+        path: `/api/users/profiles/image`,
+        method: "PATCH",
+        body: data,
+        secure: true,
+        type: ContentType.FormData,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags post-controller
+     * @name GetPostDetail
+     * @request GET:/api/posts/{postId}
+     * @secure
+     */
+    getPostDetail: (postId: number, params: RequestParams = {}) =>
+      this.request<PostDetailResponse, any>({
+        path: `/api/posts/${postId}`,
+        method: "GET",
+        secure: true,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags post-controller
+     * @name DeletePost
+     * @request DELETE:/api/posts/{postId}
+     * @secure
+     */
+    deletePost: (postId: number, params: RequestParams = {}) =>
+      this.request<void, any>({
+        path: `/api/posts/${postId}`,
+        method: "DELETE",
+        secure: true,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags post-controller
+     * @name UpdatePost
+     * @request PATCH:/api/posts/{postId}
+     * @secure
+     */
+    updatePost: (
+      postId: number,
+      data: PostUpdateRequest,
+      params: RequestParams = {},
+    ) =>
+      this.request<PostResponse, any>({
+        path: `/api/posts/${postId}`,
+        method: "PATCH",
+        body: data,
+        secure: true,
+        type: ContentType.Json,
+        ...params,
+      }),
+
+    /**
+     * @description 특정 댓글을 삭제합니다.
+     *
+     * @tags comment-controller
+     * @name DeleteComment
+     * @summary 댓글 삭제
+     * @request DELETE:/api/comments/{commentId}
+     * @secure
+     */
+    deleteComment: (commentId: number, params: RequestParams = {}) =>
+      this.request<void, void>({
+        path: `/api/comments/${commentId}`,
+        method: "DELETE",
+        secure: true,
+        ...params,
+      }),
+
+    /**
+     * @description 특정 댓글을 수정합니다.
+     *
+     * @tags comment-controller
+     * @name UpdateComment
+     * @summary 댓글 수정
+     * @request PATCH:/api/comments/{commentId}
+     * @secure
+     */
+    updateComment: (
+      commentId: number,
+      data: CommentUpdateRequest,
+      params: RequestParams = {},
+    ) =>
+      this.request<CommentResponse, CommentResponse>({
+        path: `/api/comments/${commentId}`,
+        method: "PATCH",
+        body: data,
+        secure: true,
+        type: ContentType.Json,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags chat-room-controller
+     * @name DeleteChatMessage
+     * @request DELETE:/api/chatrooms/{chatRoomId}/messages/{messageId}
+     * @secure
+     */
+    deleteChatMessage: (
+      chatRoomId: number,
+      messageId: number,
+      params: RequestParams = {},
+    ) =>
+      this.request<void, any>({
+        path: `/api/chatrooms/${chatRoomId}/messages/${messageId}`,
+        method: "DELETE",
+        secure: true,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags chat-room-controller
+     * @name UpdateChatMessage
+     * @request PATCH:/api/chatrooms/{chatRoomId}/messages/{messageId}
+     * @secure
+     */
+    updateChatMessage: (
+      chatRoomId: number,
+      messageId: number,
+      data: ChatMessageRequeset,
+      params: RequestParams = {},
+    ) =>
+      this.request<ChatMessageResponse, any>({
+        path: `/api/chatrooms/${chatRoomId}/messages/${messageId}`,
         method: "PATCH",
         body: data,
         secure: true,
@@ -1170,6 +1238,22 @@ export class Api<
     /**
      * No description
      *
+     * @tags block-controller
+     * @name GetBlockedUsers
+     * @request GET:/api/users/block
+     * @secure
+     */
+    getBlockedUsers: (params: RequestParams = {}) =>
+      this.request<BlockResponse[], any>({
+        path: `/api/users/block`,
+        method: "GET",
+        secure: true,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
      * @tags follow-controller
      * @name GetFollowings
      * @request GET:/api/user/users/{userId}/followings
@@ -1194,22 +1278,6 @@ export class Api<
     getFollowers: (userId: number, params: RequestParams = {}) =>
       this.request<FollowDto[], any>({
         path: `/api/user/users/${userId}/followers`,
-        method: "GET",
-        secure: true,
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags role-test-controller
-     * @name UserOnly
-     * @request GET:/api/user/test
-     * @secure
-     */
-    userOnly: (params: RequestParams = {}) =>
-      this.request<string, any>({
-        path: `/api/user/test`,
         method: "GET",
         secure: true,
         ...params,
@@ -1250,14 +1318,110 @@ export class Api<
     /**
      * No description
      *
-     * @tags role-test-controller
-     * @name AdminOnly
-     * @request GET:/api/admin/test
+     * @tags post-controller
+     * @name GetUserPosts
+     * @request GET:/api/posts/profile/{userId}
      * @secure
      */
-    adminOnly: (params: RequestParams = {}) =>
-      this.request<string, any>({
-        path: `/api/admin/test`,
+    getUserPosts: (
+      userId: number,
+      query?: {
+        /**
+         * @format int32
+         * @default 0
+         */
+        page?: number;
+        /**
+         * @format int32
+         * @default 10
+         */
+        size?: number;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<PageUserPostResponse, any>({
+        path: `/api/posts/profile/${userId}`,
+        method: "GET",
+        query: query,
+        secure: true,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags post-controller
+     * @name GetRecommendedPosts
+     * @request GET:/api/posts/home/recommend
+     * @secure
+     */
+    getRecommendedPosts: (params: RequestParams = {}) =>
+      this.request<HomePostResponse[], any>({
+        path: `/api/posts/home/recommend`,
+        method: "GET",
+        secure: true,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags post-controller
+     * @name GetFollowingRecentPosts
+     * @request GET:/api/posts/home/following
+     * @secure
+     */
+    getFollowingRecentPosts: (params: RequestParams = {}) =>
+      this.request<HomePostResponse[], any>({
+        path: `/api/posts/home/following`,
+        method: "GET",
+        secure: true,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags admin-user-controller
+     * @name GetAllUsers
+     * @request GET:/api/admin/users
+     * @secure
+     */
+    getAllUsers: (params: RequestParams = {}) =>
+      this.request<UserSummaryResponse[], any>({
+        path: `/api/admin/users`,
+        method: "GET",
+        secure: true,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags admin-user-controller
+     * @name GetOnlineUsers
+     * @request GET:/api/admin/users/online
+     * @secure
+     */
+    getOnlineUsers: (params: RequestParams = {}) =>
+      this.request<UserSummaryResponse[], any>({
+        path: `/api/admin/users/online`,
+        method: "GET",
+        secure: true,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags admin-dashboard-controller
+     * @name GetDashboardStats
+     * @request GET:/api/admin/dashboard
+     * @secure
+     */
+    getDashboardStats: (params: RequestParams = {}) =>
+      this.request<DashboardResponse, any>({
+        path: `/api/admin/dashboard`,
         method: "GET",
         secure: true,
         ...params,
@@ -1282,6 +1446,22 @@ export class Api<
     /**
      * No description
      *
+     * @tags block-controller
+     * @name UnblockUser
+     * @request DELETE:/api/users/{userId}/unblock
+     * @secure
+     */
+    unblockUser: (userId: number, params: RequestParams = {}) =>
+      this.request<void, any>({
+        path: `/api/users/${userId}/unblock`,
+        method: "DELETE",
+        secure: true,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
      * @tags follow-controller
      * @name RemoveFollower
      * @request DELETE:/api/user/followers/{targetUserId}
@@ -1291,87 +1471,6 @@ export class Api<
       this.request<void, any>({
         path: `/api/user/followers/${targetUserId}`,
         method: "DELETE",
-        secure: true,
-        ...params,
-      }),
-  };
-  admin = {
-    /**
-     * No description
-     *
-     * @tags admin-user-controller
-     * @name UnblacklistUserById
-     * @request POST:/admin/users/unblacklist/{userId}
-     * @secure
-     */
-    unblacklistUserById: (userId: number, params: RequestParams = {}) =>
-      this.request<UserSummaryResponse, any>({
-        path: `/admin/users/unblacklist/${userId}`,
-        method: "POST",
-        secure: true,
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags admin-user-controller
-     * @name BlacklistUserById
-     * @request POST:/admin/users/blacklist/{userId}
-     * @secure
-     */
-    blacklistUserById: (userId: number, params: RequestParams = {}) =>
-      this.request<UserSummaryResponse, any>({
-        path: `/admin/users/blacklist/${userId}`,
-        method: "POST",
-        secure: true,
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags admin-user-controller
-     * @name GetAllUsers
-     * @request GET:/admin/users
-     * @secure
-     */
-    getAllUsers: (params: RequestParams = {}) =>
-      this.request<UserSummaryResponse[], any>({
-        path: `/admin/users`,
-        method: "GET",
-        secure: true,
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags admin-user-controller
-     * @name GetOnlineUsers
-     * @request GET:/admin/users/online
-     * @secure
-     */
-    getOnlineUsers: (params: RequestParams = {}) =>
-      this.request<UserSummaryResponse[], any>({
-        path: `/admin/users/online`,
-        method: "GET",
-        secure: true,
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags admin-dashboard-controller
-     * @name GetDashboardStats
-     * @request GET:/admin/dashboard
-     * @secure
-     */
-    getDashboardStats: (params: RequestParams = {}) =>
-      this.request<DashboardResponse, any>({
-        path: `/admin/dashboard`,
-        method: "GET",
         secure: true,
         ...params,
       }),

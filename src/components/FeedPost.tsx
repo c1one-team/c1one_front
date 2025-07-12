@@ -20,7 +20,11 @@ export const FeedPost: React.FC<FeedPostProps> = ({ post, onCommentClick }) => {
   const imageUrl =
     post.mediaUrls && post.mediaUrls.length > 0
       ? post.mediaUrls[0]
-      : 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400&h=400&fit=crop';
+      : (() => {
+          const fallbackUrl = 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400&h=400&fit=crop';
+          console.log('🧪 HARDCODED: imageUrl 변수에 하드코딩된 대체 이미지 URL 설정:', fallbackUrl);
+          return fallbackUrl;
+        })();
 
   return (
     <article className="bg-instagram-dark border border-instagram-border rounded-lg overflow-hidden">
@@ -70,7 +74,7 @@ export const FeedPost: React.FC<FeedPostProps> = ({ post, onCommentClick }) => {
               <Heart size={24} fill={liked ? 'currentColor' : 'none'} />
             </button>
             <button
-              onClick={onCommentClick}
+              onClick={onCommentClick || handleCommentClick}
               className="text-instagram-text hover:text-instagram-muted"
             >
               <MessageSquare size={24} />
