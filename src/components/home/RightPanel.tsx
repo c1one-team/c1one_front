@@ -85,11 +85,7 @@ export const RightPanel = () => {
           suggestedUsers.map((user, index) => (
             <div key={index} className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <img
-                  className="w-10 h-10 rounded-full object-cover"
-                  src="https://via.placeholder.com/40"
-                  alt={user.username}
-                />
+                                  <div className="w-10 h-10 rounded-full bg-gray-300"></div>
                 <div>
                   <div className="text-sm font-semibold">{user.username}</div>
                   <div className="text-xs text-gray-400">회원님을 위한 추천</div>

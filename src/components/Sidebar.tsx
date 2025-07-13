@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { RootState, AppDispatch } from '@/app/store';
@@ -6,8 +6,9 @@ import { removeToken } from '@/lib/auth';
 import { setLogout } from '@/features/auth/authSlice';
 import { openSearchPanel } from '@/features/search/searchSlice';
 import { apiClient } from '@/lib/api';
-import { useCreateProfileMutation, useGetUserProfileQuery } from '@/lib/api';
+// API 훅들은 필요시 추가
 import { useToast } from '@/hooks/use-toast';
+import PostMakeModal from '@/components/PostMakeModal';
 import {
   Home,
   Search,
@@ -30,20 +31,27 @@ export const Sidebar = () => {
   const user = useSelector((state: RootState) => state.auth.user);
   const isAdmin = user?.role === 'ADMIN';
 
-  // API 훅들
-  const [createProfile] = useCreateProfileMutation();
-  const { data: userProfile } = useGetUserProfileQuery(user?.id || 0, {
-    skip: !user?.id, // 사용자가 없으면 요청 건너뛰기
-  });
+  // 모달 상태 관리
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+  // API 훅들 (필요 시 추가)
 
   // 검색 패널 열기 핸들러
   const handleSearchClick = () => {
     dispatch(openSearchPanel());
   };
 
+  // 게시물 만들기 모달 열기 핸들러
+  const handleCreateClick = () => {
+    setIsCreateModalOpen(true);
+  };
+
   // 프로필 버튼 클릭 핸들러
-  const handleProfileClick = async () => {
+  const handleProfileClick = () => {
+    console.log('🔘 프로필 버튼 클릭됨');
+    
     if (!user) {
+      console.log('❌ 사용자가 로그인되지 않음');
       toast({
         variant: "destructive",
         title: "오류",
@@ -52,41 +60,29 @@ export const Sidebar = () => {
       return;
     }
 
-    // 프로필이 이미 있는지 확인
-    if (userProfile) {
-      // 프로필이 있으면 프로필 페이지로 이동
-      navigate(`/profile/${user.id}`);
-      return;
-    }
+    // localStorage에서 사용자 정보 가져오기
+    const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
+    const userId = user.id || userInfo.id;
+    
+    console.log('🔍 사용자 정보 확인:', { 
+      reduxUser: user, 
+      localStorageUserInfo: userInfo, 
+      finalUserId: userId 
+    });
 
-    try {
-      // 프로필 생성 요청
-      const defaultProfileData = {
-        bio: `안녕하세요! ${user.username}입니다.`,
-        profileImageUrl: undefined,
-      };
-
-      await createProfile(defaultProfileData).unwrap();
-
-      // 성공 토스트 메시지 (초록색)
-      toast({
-        title: "성공",
-        description: "프로필이 생성되었습니다.",
-        className: "bg-green-500 text-white",
-      });
-
-      // 홈으로 돌아가기
-      navigate('/');
-      
-    } catch (error) {
-      console.error('❌ 프로필 생성 실패:', error);
-      
+    if (!userId) {
+      console.log('❌ 사용자 ID를 찾을 수 없음');
       toast({
         variant: "destructive",
         title: "오류",
-        description: "프로필 생성에 실패했습니다.",
+        description: "사용자 ID를 찾을 수 없습니다.",
       });
+      return;
     }
+
+    // 🚀 프로필 페이지로 이동 (데이터는 페이지에서 useGetUserProfileQuery로 가져옴)
+    console.log('🚀 프로필 페이지로 이동:', `/profile/${userId}`);
+    navigate(`/profile/${userId}`);
   };
 
   // 동적으로 메뉴 아이템 생성 (프로필 경로에 사용자 ID 포함)
@@ -97,7 +93,7 @@ export const Sidebar = () => {
     { icon: MessageSquare, label: '메시지', path: '/messages' },
     { icon: Bell, label: '알림', path: '/notifications' },
     { icon: Heart, label: '좋아요', path: '/likes' },
-    { icon: Plus, label: '만들기', path: '/create' },
+    { icon: Plus, label: '만들기', onClick: handleCreateClick }, // 만들기도 onClick으로 변경
     { icon: User, label: '프로필', onClick: handleProfileClick }, // 프로필도 onClick으로 변경
   ];
 
@@ -148,72 +144,80 @@ export const Sidebar = () => {
   };
 
   return (
-      <div className="w-64 bg-instagram-dark border-r border-instagram-border h-screen sticky top-0 p-4">
-        {/* 로고 */}
-        <div className="mb-8 p-4">
-          <Link to="/" className="text-2xl font-bold text-instagram-text hover:text-instagram-blue transition-colors">
-            Uniqram
-          </Link>
-        </div>
+      <>
+        <div className="w-64 bg-instagram-dark border-r border-instagram-border h-screen sticky top-0 p-4">
+          {/* 로고 */}
+          <div className="mb-8 p-4">
+            <Link to="/" className="text-2xl font-bold text-instagram-text hover:text-instagram-blue transition-colors">
+              Uniqram
+            </Link>
+          </div>
 
-        {/* 메뉴 항목들 */}
-        <nav className="space-y-2">
-          {menuItems.map((item, index) => {
-            // 검색 버튼은 onClick 핸들러가 있으므로 버튼으로 렌더링
-            if (item.onClick) {
+          {/* 메뉴 항목들 */}
+          <nav className="space-y-2">
+            {menuItems.map((item, index) => {
+              // 검색 버튼은 onClick 핸들러가 있으므로 버튼으로 렌더링
+              if (item.onClick) {
+                return (
+                  <button
+                    key={index}
+                    onClick={item.onClick}
+                    className="flex items-center space-x-3 p-3 rounded-lg cursor-pointer transition-colors duration-200 text-instagram-muted hover:bg-instagram-gray hover:text-instagram-text w-full text-left"
+                  >
+                    <item.icon size={24} />
+                    <span className="text-base font-medium">{item.label}</span>
+                  </button>
+                );
+              }
+              
+              // 나머지 메뉴는 Link로 렌더링
               return (
-                <button
+                <Link
                   key={index}
-                  onClick={item.onClick}
-                  className="flex items-center space-x-3 p-3 rounded-lg cursor-pointer transition-colors duration-200 text-instagram-muted hover:bg-instagram-gray hover:text-instagram-text w-full text-left"
+                  to={item.path}
+                  className={`flex items-center space-x-3 p-3 rounded-lg cursor-pointer transition-colors duration-200 ${
+                    location.pathname === item.path
+                      ? 'bg-instagram-gray text-instagram-text'
+                      : 'text-instagram-muted hover:bg-instagram-gray hover:text-instagram-text'
+                  }`}
                 >
                   <item.icon size={24} />
                   <span className="text-base font-medium">{item.label}</span>
-                </button>
+                </Link>
               );
-            }
-            
-            // 나머지 메뉴는 Link로 렌더링
-            return (
-              <Link
-                key={index}
-                to={item.path}
-                className={`flex items-center space-x-3 p-3 rounded-lg cursor-pointer transition-colors duration-200 ${
-                  location.pathname === item.path
-                    ? 'bg-instagram-gray text-instagram-text'
-                    : 'text-instagram-muted hover:bg-instagram-gray hover:text-instagram-text'
-                }`}
-              >
-                <item.icon size={24} />
-                <span className="text-base font-medium">{item.label}</span>
-              </Link>
-            );
-          })}
+            })}
 
-          {/* 로그아웃 버튼 */}
-          <div
-              onClick={handleLogout}
-              className="flex items-center space-x-3 p-3 rounded-lg cursor-pointer transition-colors duration-200 text-instagram-muted hover:bg-instagram-gray hover:text-instagram-text"
-          >
-            <MoreHorizontal size={24} />
-            <span className="text-base font-medium">로그아웃</span>
-          </div>
+            {/* 로그아웃 버튼 */}
+            <div
+                onClick={handleLogout}
+                className="flex items-center space-x-3 p-3 rounded-lg cursor-pointer transition-colors duration-200 text-instagram-muted hover:bg-instagram-gray hover:text-instagram-text"
+            >
+              <MoreHorizontal size={24} />
+              <span className="text-base font-medium">로그아웃</span>
+            </div>
 
-          {/* 관리자만 보이는 대시보드 버튼 */}
-          {isAdmin && (
-              <Link
-                  to="/admin/dashboard"
-                  className={`flex items-center space-x-3 p-3 rounded-lg cursor-pointer transition-colors duration-200 ${
-                      location.pathname.startsWith('/admin/dashboard')
-                          ? 'bg-instagram-gray text-instagram-text'
-                          : 'text-instagram-muted hover:bg-instagram-gray hover:text-instagram-text'
-                  }`}
-              >
-                <LayoutDashboard size={24} />
-                <span className="text-base font-medium">대시보드</span>
-              </Link>
-          )}
-        </nav>
-      </div>
+            {/* 관리자만 보이는 대시보드 버튼 */}
+            {isAdmin && (
+                <Link
+                    to="/admin/dashboard"
+                    className={`flex items-center space-x-3 p-3 rounded-lg cursor-pointer transition-colors duration-200 ${
+                        location.pathname.startsWith('/admin/dashboard')
+                            ? 'bg-instagram-gray text-instagram-text'
+                            : 'text-instagram-muted hover:bg-instagram-gray hover:text-instagram-text'
+                    }`}
+                >
+                  <LayoutDashboard size={24} />
+                  <span className="text-base font-medium">대시보드</span>
+                </Link>
+            )}
+          </nav>
+        </div>
+
+        {/* 게시물 만들기 모달 */}
+        <PostMakeModal 
+          isOpen={isCreateModalOpen} 
+          onClose={() => setIsCreateModalOpen(false)} 
+        />
+      </>
   );
 };

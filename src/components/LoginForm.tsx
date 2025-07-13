@@ -46,7 +46,7 @@ export const LoginForm = () => {
       const backendUser = {
         id: user.id || user.memberId || 1,
         username: user.username || username,
-        profileImage: user.profileImage || 'https://via.placeholder.com/50x50/4ECDC4/FFFFFF?text=USER',
+        profileImage: user.profileImage || '',
         role: user.role || 'USER'
       };
 
@@ -71,7 +71,7 @@ export const LoginForm = () => {
       const dummyUser = {
         id: 1,
         username: username,
-        profileImage: 'https://via.placeholder.com/50x50/4ECDC4/FFFFFF?text=USER',
+        profileImage: '',
         role: 'USER'
       };
       console.log('🧪 HARDCODED: user 변수에 하드코딩된 더미 사용자 정보 설정:', dummyUser);

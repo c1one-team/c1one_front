@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { Heart, MoreHorizontal } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { HomePostResponse, CommentResponse, deletePost } from '@/lib/postApi';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { HomePostResponse, CommentResponse, useDeletePostMutation } from '@/lib/api';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface PostCommentsProps {
   post: HomePostResponse;
@@ -19,17 +19,18 @@ export const PostComments: React.FC<PostCommentsProps> = ({ post, comments, onCl
 
   const queryClient = useQueryClient();
 
-  const deleteMutation = useMutation({
-    mutationFn: () => deletePost(post.postId),
-    onSuccess: () => {
+  const [deletePost] = useDeletePostMutation();
+
+  const handleDeletePost = async () => {
+    try {
+      await deletePost(post.postId).unwrap();
       queryClient.invalidateQueries({ queryKey: ['userPosts'] });
       alert('삭제 완료');
       onClose(); // ✅ 모달 닫기
-    },
-    onError: (err) => {
+    } catch (err) {
       alert('삭제 실패: ' + err.message);
-    },
-  });
+    }
+  };
 
   const handleLike = () => {
     setLiked(!liked);
@@ -46,7 +47,7 @@ export const PostComments: React.FC<PostCommentsProps> = ({ post, comments, onCl
 
   const handleDelete = () => {
     if (confirm('정말 삭제하시겠습니까?')) {
-      deleteMutation.mutate();
+      handleDeletePost();
     }
   };
 
@@ -56,13 +57,7 @@ export const PostComments: React.FC<PostCommentsProps> = ({ post, comments, onCl
       <div className="flex items-center justify-between p-4 border-b border-instagram-border relative">
         <div className="flex items-center space-x-3">
           <div className="w-8 h-8 story-ring rounded-full p-0.5">
-            <div className="w-full h-full bg-instagram-dark rounded-full p-0.5">
-              <img
-                src={'https://via.placeholder.com/32'}
-                alt={post.username}
-                className="w-full h-full rounded-full object-cover"
-              />
-            </div>
+            <div className="w-full h-full rounded-full"></div>
           </div>
           <div>
             <div className="flex items-center space-x-1">
@@ -88,11 +83,12 @@ export const PostComments: React.FC<PostCommentsProps> = ({ post, comments, onCl
         {menuOpen && (
           <div className="absolute top-10 right-4 bg-white border rounded shadow p-2 z-50">
             <button
-              className="block w-full text-left px-4 py-2 hover:bg-gray-100"
+              className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-black"
               onClick={() => alert('수정하기는 아직 미구현입니다')}
             >
               수정하기
             </button>
+            <div className="border-t border-black mx-2"></div>
             <button
               className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-500"
               onClick={handleDelete}
@@ -106,11 +102,7 @@ export const PostComments: React.FC<PostCommentsProps> = ({ post, comments, onCl
       {/* Post Caption */}
       <div className="p-4 border-b border-instagram-border">
         <div className="flex items-start space-x-3">
-          <img
-            src={'https://via.placeholder.com/32'}
-            alt={post.username}
-            className="w-8 h-8 rounded-full object-cover flex-shrink-0"
-          />
+          <div className="w-8 h-8 rounded-full flex-shrink-0"></div>
           <div className="flex-1">
             <div className="text-sm">
               <span className="font-semibold text-instagram-text mr-2">{post.username}</span>
@@ -142,11 +134,7 @@ export const PostComments: React.FC<PostCommentsProps> = ({ post, comments, onCl
           {comments.length > 0 ? (
             comments.map((comment) => (
               <div key={comment.userId} className="flex items-start space-x-3">
-                <img
-                  src={'https://via.placeholder.com/32'}
-                  alt={comment.userName}
-                  className="w-8 h-8 rounded-full object-cover flex-shrink-0"
-                />
+                <div className="w-8 h-8 rounded-full bg-gray-300 flex-shrink-0"></div>
                 <div className="flex-1">
                   <div className="text-sm">
                     <span className="font-semibold text-instagram-text mr-2">{comment.userName}</span>

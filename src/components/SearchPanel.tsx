@@ -71,11 +71,18 @@ export const SearchPanel = () => {
 
     console.log('✅ 검색 결과 아이템 파싱:', { userId, username });
 
+    // 프로필 링크 클릭 핸들러 (localStorage에 username 저장)
+    const handleProfileClick = () => {
+      localStorage.setItem('searchResultUserName', username);
+      console.log('💾 localStorage에 searchResultUserName 저장:', username);
+      handleClose();
+    };
+
     return (
       <Link
         key={`user-${userId}-${index}`}
         to={`/profile/${userId}`}
-        onClick={handleClose}
+        onClick={handleProfileClick}
         className="flex items-center gap-3 p-3 hover:bg-gray-800 rounded-lg transition-colors"
       >
         <div className="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center">

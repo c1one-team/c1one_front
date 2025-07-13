@@ -5,13 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Camera, Plus, Grid3x3, Bookmark, User, UserPlus, UserMinus } from "lucide-react";
-import { useGetUserPosts } from '@/lib/postApi';
+import { useGetUserPostsQuery } from '@/lib/api';
 import { PostDetailModal } from '@/components/PostDetailModal';
-import { useGetUserProfileQuery, useGetFollowersQuery, useGetFollowingsQuery } from '@/lib/api';
+import { useGetUserProfileQuery, useGetFollowersQuery, useGetFollowingsQuery, useCreateProfileMutation } from '@/lib/api';
+import { processRepresentativeImageUrl, handleImageError, handleImageLoad } from '@/lib/utils';
 
 import { RootState } from '@/app/store';
 import { useToast } from '@/hooks/use-toast';
-
 const UserProfilePage = () => {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
@@ -19,13 +19,17 @@ const UserProfilePage = () => {
   const [activeTab, setActiveTab] = useState("posts");
   const [selectedPostId, setSelectedPostId] = useState<number | null>(null);
   
+  // 컴포넌트 마운트 확인
+  console.log('🏠 UserProfilePage 컴포넌트 마운트됨 - userId:', userId);
+  console.log('🔍 URL params:', useParams());
+  
   // Redux에서 현재 로그인된 사용자 정보 가져오기
   const currentUser = useSelector((state: RootState) => state.auth.user);
   const isOwnProfile = currentUser?.id === Number(userId);
   
   // Redux Toolkit Query 훅들을 사용하여 데이터 가져오기
-  const { data: userPosts, isLoading: isPostsLoading } = useGetUserPosts(Number(userId));
-  const { data: profile, isLoading: isProfileLoading, error: profileError } = useGetUserProfileQuery(Number(userId!) || 0);
+  const { data: userPosts, isLoading: isPostsLoading } = useGetUserPostsQuery({ userId: Number(userId) });
+  const { data: profile, isLoading: isProfileLoading, error: profileError, refetch: refetchProfile } = useGetUserProfileQuery(Number(userId!) || 0);
   const { data: followers, isLoading: isFollowersLoading } = useGetFollowersQuery(Number(userId!) || 0);
   const { data: followings, isLoading: isFollowingsLoading } = useGetFollowingsQuery(Number(userId!) || 0);
   
@@ -33,6 +37,9 @@ const UserProfilePage = () => {
   const followersCount = followers?.length || 0;
   const followingsCount = followings?.length || 0;
   const isStatsLoading = isFollowersLoading || isFollowingsLoading;
+
+  // 🔹 프로필 생성 뮤테이션 추가
+  const [createProfile] = useCreateProfileMutation();
 
   // 🔄 에러 처리
   useEffect(() => {
@@ -45,17 +52,40 @@ const UserProfilePage = () => {
       const isServerError = errorStatus === 500 || errorStatus === 404;
       
       if (isServerError) {
-        const errorMessage = "프로필을 생성하지 않은 유저입니다.";
-        console.log('🚨 서버 에러 발생 - 존재하지 않는 사용자로 판단하여 홈으로 리다이렉트');
-        console.log('🍞 Toast 메시지 표시:', errorMessage);
-        
-        toast({
-          variant: "destructive",
-          title: "오류",
-          description: errorMessage,
-        });
-        
-        navigate("/");
+        // 🔹 본인 프로필인 경우 프로필 생성 시도
+        if (isOwnProfile) {
+          console.log('🔄 본인 프로필이 없음 - 프로필 생성 시도');
+          
+          // 프로필 생성 API 호출
+          createProfile({ bio: "", profileImageUrl: "" })
+            .unwrap()
+                         .then(() => {
+               console.log('✅ 프로필 생성 성공 - 데이터 다시 가져오기');
+               // 프로필 데이터 다시 가져오기
+               refetchProfile();
+             })
+            .catch((createError) => {
+              console.error('❌ 프로필 생성 실패:', createError);
+              toast({
+                variant: "destructive",
+                title: "프로필 생성 실패",
+                description: "프로필을 생성하는데 실패했습니다. 다시 시도해주세요.",
+              });
+            });
+        } else {
+          // 🔹 다른 사용자 프로필 - 기존 로직 유지
+          const errorMessage = "프로필을 생성하지 않은 유저입니다.";
+          console.log('🚨 서버 에러 발생 - 존재하지 않는 사용자로 판단하여 홈으로 리다이렉트');
+          console.log('🍞 Toast 메시지 표시:', errorMessage);
+          
+          toast({
+            variant: "destructive",
+            title: "오류",
+            description: errorMessage,
+          });
+          
+          navigate("/");
+        }
         return;
       }
       
@@ -72,7 +102,7 @@ const UserProfilePage = () => {
         description: errorMessage,
       });
     }
-  }, [profileError, isOwnProfile, toast, navigate]);
+  }, [profileError, isOwnProfile, toast, navigate, createProfile, refetchProfile]);
 
   // ✅ 모달 상태 핸들러들
   const handleOpenPostDetail = (postId: number) => setSelectedPostId(postId);
@@ -203,15 +233,21 @@ const UserProfilePage = () => {
             <div className="text-center text-gray-500">로딩 중...</div>
           ) : userPosts?.content && userPosts.content.length > 0 ? (
             <div className="grid grid-cols-3 gap-2">
-              {userPosts.content.map((post) => (
-                <img
-                  key={post.postId}
-                  src={post.representativeImageUrl}
-                  alt="Post"
-                  className="w-full h-32 object-cover cursor-pointer"
-                  onClick={() => handleOpenPostDetail(post.postId)}
-                />
-              ))}
+              {userPosts.content.map((post) => {
+                console.log('📸 Post 데이터:', post);
+                console.log('🖼️ representativeImageUrl:', post.representativeImageUrl);
+                return (
+                  <img
+                    key={post.postId}
+                    src={processRepresentativeImageUrl(post.representativeImageUrl)}
+                    alt="Post"
+                    className="w-full aspect-[3/4] object-cover cursor-pointer"
+                    onClick={() => handleOpenPostDetail(post.postId)}
+                    onError={(e) => handleImageError(e, post.representativeImageUrl)}
+                    onLoad={(e) => handleImageLoad(e, post.representativeImageUrl)}
+                  />
+                );
+              })}
             </div>
           ) : (
             <EmptyState

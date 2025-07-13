@@ -42,6 +42,58 @@ export interface Comment {
   user: User;        // 작성자 정보
 }
 
+// postApi.tsx에서 사용하던 타입들 추가
+export interface HomePostResponse {
+  postId: number;
+  content: string;
+  location: string | null;
+  mediaUrls: string[];
+  memberId: number;
+  username: string;
+  likeCount: number;
+  likeUsers: LikeUserDto[];
+  likedByMe: boolean;
+  bookmarkedByMe?: boolean;
+  comments: CommentResponse[];
+}
+
+export interface LikeUserDto {
+  postId: number;      
+  userId: number;
+  username: string;
+}
+
+export interface CommentResponse {
+  commentId: number;
+  userId: number;
+  userName: string;        
+  content: string;
+  likeCount: number;
+  createdAt: string;
+  modifiedAt: string;
+  parentCommentId: number | null;
+  postId: number;
+}
+
+export interface UserPostResponse {
+  postId: number;
+  representativeImageUrl: string;
+}
+
+export interface PageResponse<T> {
+  content: T[];
+  pageable: any;
+  totalPages: number;
+  totalElements: number;
+  last: boolean;
+  size: number;
+  number: number;
+  sort: any;
+  first: boolean;
+  numberOfElements: number;
+  empty: boolean;
+}
+
 // 🔐 인증 응답 타입
 export interface AuthResponse {
   token: string; // JWT 토큰
@@ -217,6 +269,31 @@ export const apiService = createApi({
       }),
       invalidatesTags: ['User'], // 프로필 수정 후 User 캐시 무효화
     }),
+
+    // postApi.tsx에서 사용하던 API들 추가
+    // 사용자 게시물 목록 가져오기
+    getUserPosts: builder.query<PageResponse<UserPostResponse>, { userId: number; page?: number; size?: number }>({
+      query: ({ userId, page = 0, size = 10 }) => ({
+        url: `/posts/profile/${userId}`,
+        params: { page, size },
+      }),
+      providesTags: (result, error, { userId }) => [{ type: 'Post', id: `user-${userId}` }],
+    }),
+
+    // 게시물 상세 정보 가져오기
+    getPostDetail: builder.query<HomePostResponse, number>({
+      query: (postId) => `/posts/${postId}`,
+      providesTags: (result, error, postId) => [{ type: 'Post', id: postId }],
+    }),
+
+    // 게시물 삭제
+    deletePost: builder.mutation<void, number>({
+      query: (postId) => ({
+        url: `/posts/${postId}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Post'],
+    }),
   }),
 });
 
@@ -245,6 +322,11 @@ export const {
   useCreateProfileMutation, // 프로필 생성 훅
   useUpdateProfileMutation, // 프로필 수정 훅
   useSearchUsersQuery,     // 사용자 검색 훅
+  
+  // postApi.tsx에서 사용하던 훅들 추가
+  useGetUserPostsQuery,    // 사용자 게시물 목록 가져오기 훅
+  useGetPostDetailQuery,   // 게시물 상세 정보 가져오기 훅
+  useDeletePostMutation,   // 게시물 삭제 훅
 } = apiService;
 
 // ========================================
