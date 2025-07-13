@@ -58,7 +58,7 @@ export default function DMListSidebar({ onSelectRoom, selectedRoomId }: DMListSi
     apiClient.comments.getMyChatRooms()
       .then(res => {
         console.log('채팅방 목록 응답:', res);
-        setChatRooms(Array.isArray(res) ? res : []);
+        setChatRooms(Array.isArray(res.data) ? res.data: []);
       })
       .catch(() => setChatRooms([]));
   }, []);
