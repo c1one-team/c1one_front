@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { Eye, EyeOff } from 'lucide-react';
-import { Api, SignupRequest } from '@/api/api';
+import { SignupRequest } from '@/api/api';
+import { apiClient } from '@/lib/api';
 
 interface SignupForm {
     username: string;
@@ -19,8 +20,7 @@ const SignupPage: React.FC = () => {
     const navigate = useNavigate();
     const [isLoading, setIsLoading] = useState(false);
     
-    // API 클라이언트 인스턴스 생성
-    const apiClient = new Api();
+    // 전역 API 클라이언트 사용
     
     const {
         register: registerField,

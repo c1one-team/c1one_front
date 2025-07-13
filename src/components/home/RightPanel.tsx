@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Api, UserSearchResultDto } from '@/api/api';
+import { UserSearchResultDto } from '@/api/api';
+import { apiClient } from '@/lib/api';
 
 export const RightPanel = () => {
   const navigate = useNavigate();
   const [suggestedUsers, setSuggestedUsers] = useState<UserSearchResultDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const api = new Api();
+  // 전역 API 클라이언트 사용
 
   const dummyUsers: UserSearchResultDto[] = [
     { userid: 1, username: 'user1' },
@@ -21,7 +22,7 @@ export const RightPanel = () => {
     const fetchSuggestedUsers = async () => {
       try {
         console.log('🔄 백엔드 API 요청 시도...');
-        const response = await api.api.searchResult('추천');
+        const response = await apiClient.api.searchResult('추천');
 
         if (typeof response.data === 'string' && (response.data as string).includes('<!DOCTYPE html>')) {
           throw new Error('백엔드 서버가 응답하지 않음');

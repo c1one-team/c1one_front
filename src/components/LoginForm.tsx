@@ -8,13 +8,14 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Separator } from './ui/separator';
 import { Facebook } from 'lucide-react';
-import { Api, SigninRequest } from '@/api/api'; // Api 클래스와 SigninRequest 타입 임포트
+import { SigninRequest } from '@/api/api'; // SigninRequest 타입 임포트
+import { apiClient } from '@/lib/api'; // 전역 API 클라이언트
 
 export const LoginForm = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const dispatch = useDispatch();
-  const api = new Api(); // Api 클래스의 인스턴스 생성
+  // 전역 API 클라이언트 사용
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,7 +26,7 @@ export const LoginForm = () => {
       // 비밀번호를 평문으로 전송 (서버에서 해시화 처리)
       console.log('🔄 로그인 요청 전송...');
 
-      const response = await api.api.signin({ username: username, password: password } as SigninRequest);
+      const response = await apiClient.api.signin({ username: username, password: password } as SigninRequest);
 
       // 응답이 HTML인지 확인 (백엔드 서버가 없을 때)
       if (typeof response.data === 'string' && (response.data as string).includes('<!DOCTYPE html>')) {

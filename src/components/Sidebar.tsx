@@ -4,8 +4,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { RootState } from '@/app/store';
 import { removeToken } from '@/lib/auth';
 import { setLogout } from '@/features/auth/authSlice';
-import { Api } from '@/api/api';
-import customAxiosInstance from '@/lib/axios';
+import { apiClient } from '@/lib/api';
 import {
   Home,
   Search,
@@ -42,7 +41,6 @@ export const Sidebar = () => {
       console.log('🚪 로그아웃 처리 시작...');
       
       // 1. 백엔드 API 호출 (HTTP-only 쿠키 제거)
-      const apiClient = new Api(customAxiosInstance);
       await apiClient.api.logout();
       console.log('✅ 백엔드 로그아웃 API 호출 성공 (HTTP-only 쿠키 제거됨)');
       

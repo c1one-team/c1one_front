@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Api, SigninRequest } from '@/api/api';
-import customAxiosInstance from '@/lib/axios';
+import { SigninRequest } from '@/api/api';
+import { apiClient } from '@/lib/api';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useForm } from 'react-hook-form';
@@ -21,8 +21,7 @@ const LoginPage: React.FC = () => {
     const dispatch = useDispatch();
 
 
-    // API 클라이언트 인스턴스 생성 (토큰 인터셉터가 설정된 axios 사용)
-    const apiClient = new Api(customAxiosInstance);
+    // 전역 API 클라이언트 사용
 
 
     const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>();

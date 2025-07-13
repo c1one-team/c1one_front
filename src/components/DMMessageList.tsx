@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import useChatWebSocket from '@/hooks/useChatWebSocket';
-import { Api, ChatMessageList } from '@/api/api';
+import { ChatMessageList } from '@/api/api';
+import { apiClient } from '@/lib/api';
 
-const api = new Api();
+// 전역 API 클라이언트 사용
 
 interface Message {
   id: string;
@@ -42,10 +43,10 @@ export default function DMMessageList({ roomId }: DMMessageListProps) {
   useEffect(() => {
     let ignore = false;
     if (roomId) {
-      api.chatrooms.getChatMessages(Number(roomId))
+      apiClient.api.getChatMessages(Number(roomId))
         .then(res => {
           if (!ignore) {
-            const msgs = res.data.map((msg: any) => ({
+            const msgs = res.map((msg: any) => ({
               id: msg.messageId || msg.id,
               isMine: msg.senderId === myId,
               senderName: msg.senderName,

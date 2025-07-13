@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Api } from '@/api/api';
+import { apiClient } from '@/lib/api';
 
 const ApiTest = () => {
   const [status, setStatus] = useState<string>('');
@@ -14,8 +14,8 @@ const ApiTest = () => {
     try {
       // 🔄 백엔드 API 우선 시도
       console.log('🔄 백엔드 API 요청 시도...');
-      const api = new Api();
-      const response = await api.posts.getRecommendedPosts();
+      // 전역 API 클라이언트 사용
+              const response = await apiClient.api.getRecommendedPosts();
       
       // 응답이 HTML인지 확인 (백엔드 서버가 없을 때)
       if (typeof response.data === 'string' && (response.data as string).includes('<!DOCTYPE html>')) {
