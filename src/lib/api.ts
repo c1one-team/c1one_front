@@ -137,7 +137,7 @@ const customBaseQuery = async (args: any, api: any, extraOptions: any) => {
   try {
     // 기본 fetch 설정 - HTTP-only 쿠키 지원
     const result = await fetchBaseQuery({
-      baseUrl: 'http://localhost:8080/api', // 백엔드 서버 주소
+      baseUrl: import.meta.env.VITE_API_BASE_URL + '/api', // 백엔드 서버 주소
       credentials: 'include', // HTTP-only 쿠키 포함
       prepareHeaders: (headers) => {
         // HTTP-only 쿠키 방식 사용하므로 Authorization 헤더 불필요
@@ -228,6 +228,24 @@ export const apiService = createApi({
         body: profileData,
       }),
       invalidatesTags: ['Profile', 'User'], // 프로필 생성 후 캐시 무효화
+    }),
+
+    // 팔로우 하기
+    createFollow: builder.mutation<void, number>({
+      query: (targetUserId) => ({
+        url: `/user/follows/${targetUserId}`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['Follow'], // 팔로우 관련 캐시 무효화
+    }),
+
+    // 언팔로우 하기
+    unfollow: builder.mutation<void, number>({
+      query: (targetUserId) => ({
+        url: `/user/follows/${targetUserId}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Follow'], // 팔로우 관련 캐시 무효화
     }),
 
     // 사용자 검색
@@ -366,7 +384,8 @@ export const {
   useCreateProfileMutation, // 프로필 생성 훅
   useUpdateProfileMutation, // 프로필 수정 훅
   useSearchUsersQuery,     // 사용자 검색 훅
-
+  useCreateFollowMutation, // 팔로우 하기 훅
+  useUnfollowMutation,     // 언팔로우 하기 훅
 
   // 디엠 관련 훅들
   useGetChatRoomsQuery, //채팅방 목록 가져오기
@@ -386,7 +405,7 @@ export const {
 // 모든 컴포넌트에서 import { apiClient } from '@/lib/api'로 사용
 
 export const apiClient = new Api({
-  baseUrl: 'http://localhost:8080',
+  baseUrl: import.meta.env.VITE_API_BASE_URL,
   customFetch: (...fetchParams: Parameters<typeof fetch>) => {
     // HTTP-only 쿠키 지원을 위한 customFetch
     const [input, init = {}] = fetchParams;

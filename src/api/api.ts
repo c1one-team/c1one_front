@@ -502,7 +502,7 @@ export enum ContentType {
 }
 
 export class HttpClient<SecurityDataType = unknown> {
-  public baseUrl: string = "http://localhost:8080";
+  public baseUrl: string = import.meta.env.VITE_API_BASE_URL;
   private securityData: SecurityDataType | null = null;
   private securityWorker?: ApiConfig<SecurityDataType>["securityWorker"];
   private abortControllers = new Map<CancelToken, AbortController>();
@@ -701,7 +701,7 @@ export class HttpClient<SecurityDataType = unknown> {
 /**
  * @title Uniqram Swagger
  * @version 1.0.0
- * @baseUrl http://localhost:8080
+ * @baseUrl import.meta.env.VITE_API_BASE_URL
  *
  * 인스타그램 클론 프로젝트 API 명세서
  */

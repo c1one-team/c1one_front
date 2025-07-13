@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Camera, Plus, Grid3x3, Bookmark, User, UserPlus, UserMinus } from "lucide-react";
 import { useGetUserPostsQuery } from '@/lib/api';
 import { PostDetailModal } from '@/components/PostDetailModal';
-import { useGetUserProfileQuery, useGetFollowersQuery, useGetFollowingsQuery, useCreateProfileMutation } from '@/lib/api';
+import { useGetUserProfileQuery, useGetFollowersQuery, useGetFollowingsQuery, useCreateProfileMutation, useCreateFollowMutation } from '@/lib/api';
 import { processRepresentativeImageUrl, handleImageError, handleImageLoad } from '@/lib/utils';
 
 import { RootState } from '@/app/store';
@@ -40,6 +40,30 @@ const UserProfilePage = () => {
 
   // 🔹 프로필 생성 뮤테이션 추가
   const [createProfile] = useCreateProfileMutation();
+
+  // 🔹 팔로우 관련 뮤테이션 추가
+  const [createFollow] = useCreateFollowMutation();
+
+  // 🔄 팔로우 버튼 클릭 핸들러
+  const handleFollowClick = async () => {
+    try {
+      console.log('🔄 팔로우 요청 시작:', userId);
+      await createFollow(Number(userId)).unwrap();
+      console.log('✅ 팔로우 성공');
+      
+      toast({
+        title: "팔로우 성공",
+        description: "사용자를 팔로우했습니다.",
+      });
+    } catch (error) {
+      console.error('❌ 팔로우 실패:', error);
+      toast({
+        variant: "destructive",
+        title: "팔로우 실패",
+        description: "팔로우 처리 중 오류가 발생했습니다.",
+      });
+    }
+  };
 
   // 🔄 에러 처리
   useEffect(() => {
@@ -162,6 +186,7 @@ const UserProfilePage = () => {
               variant="secondary"
               size="sm"
               className="text-sm px-4 py-1.5"
+              onClick={handleFollowClick}
             >
               <UserPlus className="w-4 h-4 mr-2" />
               팔로우
@@ -169,8 +194,9 @@ const UserProfilePage = () => {
             <Button variant="secondary" size="sm" className="text-sm px-4 py-1.5">
               메시지
             </Button>
-            <Button variant="ghost" size="icon">
-              <UserMinus className="w-5 h-5 text-profile-text" />
+            <Button variant="secondary" size="sm" className="text-sm px-4 py-1.5">
+              <UserMinus className="w-4 h-4 mr-2" />
+              언팔로우
             </Button>
           </div>
 
