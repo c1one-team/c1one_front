@@ -36,8 +36,8 @@ export const searchUsers = createAsyncThunk(
       }
       
       // API 호출 전 상세 로깅
-      console.log('🌐 API 요청 URL:', `http://localhost:8080/api/search/${keyword}`);
-      console.log('🌐 API 요청 URL (인코딩):', `http://localhost:8080/api/search/${encodeURIComponent(keyword)}`);
+      console.log('🌐 API 요청 URL:', import.meta.env.VITE_API_BASE_URL + `/api/search/${keyword}`);
+      console.log('🌐 API 요청 URL (인코딩):', import.meta.env.VITE_API_BASE_URL + `/api/search/${encodeURIComponent(keyword)}`);
       
       // API 호출
       const response = await apiClient.api.searchResult(keyword);

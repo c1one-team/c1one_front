@@ -13,12 +13,12 @@ export default defineConfig(({ mode }) => ({
     cors: true, // CORS 활성화
     proxy: {
       '/ws-chat': {
-      target: 'ws://localhost:8080',
+      target: process.env.VITE_WS_BASE_URL,
       ws: true,
       changeOrigin: true,
       },
       '/api': {
-        target: 'http://localhost:8080',
+        target: process.env.VITE_API_BASE_URL,
         changeOrigin: true,
         secure: false,
         cookieDomainRewrite: 'localhost',

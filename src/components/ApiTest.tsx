@@ -87,9 +87,9 @@ const ApiTest = () => {
         )}
 
         <div className="text-xs text-instagram-muted space-y-1">
-          <p>• React 서버: http://localhost:8081</p>
-          <p>• Spring 서버: http://localhost:8080</p>
-          <p>• API 프록시: /api → http://localhost:8080</p>
+          <p>• React 서버: {import.meta.env.VITE_REACT_SERVER_URL}</p>
+          <p>• Spring 서버: {import.meta.env.VITE_API_BASE_URL}</p>
+          <p>• API 프록시: /api → {import.meta.env.VITE_API_BASE_URL + '/api'}</p>
         </div>
       </div>
     </div>

@@ -26,7 +26,7 @@ export const uploadToS3WithFallback = async (file: File): Promise<S3UploadResult
     const formData = new FormData();
     formData.append('files', file);
 
-    const response = await fetch('http://localhost:8080/api/s3', {
+    const response = await fetch(import.meta.env.VITE_API_BASE_URL + '/api/s3', {
       method: 'POST',
       body: formData,
       credentials: 'include', // HTTP-only 쿠키 포함
