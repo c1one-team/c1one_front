@@ -13,12 +13,16 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user }) => {
   return (
     <div className="flex flex-col md:flex-row gap-8 mb-8">
       {/* Profile Picture */}
-      <div className="flex justify-center md:justify-start">
-        <Avatar className="w-32 h-32 md:w-40 md:h-40">
-          <AvatarImage src={user.profileImage || "https://via.placeholder.com/300"} alt="프로필" />
-          <AvatarFallback className="text-2xl bg-instagram-gray">{user.username.slice(0, 2).toUpperCase()}</AvatarFallback>
-        </Avatar>
-      </div>
+              <div className="flex justify-center md:justify-start">
+          <Avatar className="w-32 h-32 md:w-40 md:h-40">
+            {user.profileImage ? (
+              <AvatarImage src={user.profileImage} alt="프로필" />
+            ) : (
+              <div className="w-full h-full bg-gray-300 rounded-full"></div>
+            )}
+            <AvatarFallback className="text-2xl bg-instagram-gray">{user.username.slice(0, 2).toUpperCase()}</AvatarFallback>
+          </Avatar>
+        </div>
 
       {/* Profile Info */}
       <div className="flex-1 text-center md:text-left">
