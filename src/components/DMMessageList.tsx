@@ -1,9 +1,11 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import useChatWebSocket from '@/hooks/useChatWebSocket';
-import { ChatMessageList } from '@/api/api';
-import { apiClient } from '@/lib/api';
+import { useGetChatMessagesQuery } from '@/lib/api';
+import { apiClient, apiService } from '@/lib/api';
+import { useAppDispatch } from '@/lib/hooks';
+import { skipToken } from '@reduxjs/toolkit/query';
 
-// 전역 API 클라이언트 사용
+
 
 interface Message {
   id: string;
@@ -22,46 +24,35 @@ interface DMMessageListProps {
 export default function DMMessageList({ roomId }: DMMessageListProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const listRef = useRef<HTMLDivElement>(null);
-  const myId = 2; //TODO: 실제 내 userId 받아오기
+  const myId = getMyId(); //TODO: 실제 내 userId 받아오기
 
-  // 실시간 수신
-  const handleMessage = useCallback((msg: any) => {
-    setMessages(prev => [...prev, {
-      id: msg.messageId || msg.id,
-      content: msg.content,
-      isMine: msg.senderId === myId,
-      timestamp: formatTime(msg.createdAt),
-      isRead: msg.isRead,
+  const dispatch = useAppDispatch();
+
+  //메세지 불러오기
+  const { data: messagesData = [], isLoading, error } = useGetChatMessagesQuery(roomId ? Number(roomId) : skipToken);
+
+
+  useChatWebSocket(roomId, (msg) => {
+    // (1) 메시지 스키마 변환(프론트/백엔드 일치 주의)
+    const normalized = {
+      ...msg,
+      messageId: msg.messageId ?? msg.id,
       senderId: msg.senderId,
-    },
-  ]);
-  }, [myId]);
+      content: msg.content || msg.message,
+      createdAt: msg.createdAt,
+      isRead: msg.isRead,
+    };
+    // (2) RTK Query 캐시에 바로 반영 (중복 메시지 여부 체크도 추가 가능)
+    dispatch(
+      apiService.util.updateQueryData('getChatMessages', Number(roomId), (draft = []) => {
+        // 중복방지: messageId 기준으로 이미 있으면 추가X
+        if (!draft.some((m: any) => m.messageId === normalized.messageId)) {
+          draft.push(normalized);
+        }
+      })
+    );
+  });
 
-  const { sendMessage } = useChatWebSocket(roomId, handleMessage);
-
-  // roomId가 바뀌면 실제 DB에서 메시지 fetch
-  useEffect(() => {
-    let ignore = false;
-    if (roomId) {
-      apiClient.api.getChatMessages(Number(roomId))
-        .then(res => {
-          if (!ignore) {
-            const msgs = res.map((msg: any) => ({
-              id: msg.messageId || msg.id,
-              isMine: msg.senderId === myId,
-              senderName: msg.senderName,
-              content: msg.content || msg.message,
-              timestamp: formatTime(msg.createdAt),
-              isRead: msg.isRead,
-            }));
-            setMessages(msgs);
-          }
-        });
-    } else {
-      setMessages([]);
-    }
-    return () => { ignore = true; };
-  }, [roomId, myId]);
 
 
 
@@ -70,7 +61,7 @@ export default function DMMessageList({ roomId }: DMMessageListProps) {
     if (listRef.current) {
       listRef.current.scrollTop = listRef.current.scrollHeight;
     }
-  }, [messages, roomId]);
+  }, [messagesData, roomId]);
 
   if (!roomId) {
     return <div className="flex-1 flex items-center justify-center text-gray-500">대화를 선택하세요</div>;
@@ -82,15 +73,15 @@ export default function DMMessageList({ roomId }: DMMessageListProps) {
       className="flex-1 overflow-y-auto flex flex-col p-4 space-y-reverse space-y-2"
       style={{ minHeight: 0 }}
     >
-      {messages.map((msg, idx) => (
+      {messagesData.map((msg) => (
         <div
-          key={msg.messageId ?? msg.senderId ?? idx}
-          className={`flex ${msg.isMine ? 'justify-end' : 'justify-start'} mb-2`}
+          key={msg.messageId}
+          className={`flex ${msg.senderId === myId ? 'justify-end' : 'justify-start'} mb-2`}
         >
-          <div className={`max-w-xs px-4 py-2 rounded-2xl ${msg.isMine ? 'bg-blue-500 text-white' : 'bg-gray-800 text-white'}`}>
-            <div>{msg.content}</div>
+          <div className={`max-w-xs px-4 py-2 rounded-2xl ${msg.senderId === myId ? 'bg-blue-500 text-white' : 'bg-gray-800 text-white'}`}>
+            <div>{msg.message}</div>
             <div className="text-xs text-gray-400 text-right mt-1">
-              {msg.timestamp} {msg.isRead && <span>읽음</span>}
+              {formatTime(msg.createdAt)} {msg.isRead && <span>읽음</span>}
             </div>
           </div>
         </div>
@@ -101,8 +92,7 @@ export default function DMMessageList({ roomId }: DMMessageListProps) {
 
 function formatTime(createdAt: any) {
   // 원하는 형식으로 변환
-  // const date = new Date(dateString);
-  // return date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+
 
   // createdAt이 배열이면 LocalDateTime으로 변환
   if (Array.isArray(createdAt)) {
@@ -127,4 +117,8 @@ function formatTime(createdAt: any) {
     }
   }
   return '';
+}
+
+function getMyId() {
+  return Number(localStorage.getItem('userId')) || 1;
 }

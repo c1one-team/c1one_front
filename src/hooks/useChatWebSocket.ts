@@ -11,7 +11,7 @@ function getMyName(): string {
   return localStorage.getItem('userName') || '익명';
 }
 
-export default function useChatWebSocket(roomId: string | null, onMessage: MessageHandler) {
+export default function useChatWebSocket(roomId: string | null, onMessage) {
   const clientRef = useRef<Client | null>(null);
 
   useEffect(() => {
@@ -27,7 +27,7 @@ export default function useChatWebSocket(roomId: string | null, onMessage: Messa
 
     client.onConnect = () => {
       // 2. 채팅방 구독
-      client.subscribe(`/topic/chatroom.${roomId}`, (message: IMessage) => {
+      client.subscribe(`/topic/chatroom.${roomId}`, (message) => {
         const body = JSON.parse(message.body);
         console.log('수신 메시지:', body); 
         onMessage(body);
