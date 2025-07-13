@@ -5,12 +5,13 @@
 // 인증되지 않은 사용자를 로그인 페이지로 리다이렉트합니다.
 
 import React, { useEffect, useState } from 'react';
-import { getToken, removeToken } from '@/lib/auth';
+// HTTP-only 쿠키 방식에서는 토큰 관리 불필요
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '@/app/store';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { setUser, clearUser } from '@/features/auth/authSlice';
 import { Navigate } from 'react-router-dom';
+import { apiClient } from '@/lib/api';
 
 interface AuthWrapperProps {
   children: React.ReactNode;
@@ -22,57 +23,14 @@ const AuthWrapper: React.FC<AuthWrapperProps> = ({ children }) => {
   const location = useLocation();
   const [isChecking, setIsChecking] = useState(true);
 
-  // 🔧 환경변수 설정 (.env 파일에서 로드)
-  const envConfig = {
-    isDevelopment: import.meta.env.DEV || false,
-    bypassAuth: import.meta.env.VITE_BYPASS_AUTH === 'true' || false,
-    testJWT: import.meta.env.VITE_TEST_JWT === 'true' || false,
-    // 추가 환경변수들
-    apiBaseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api',
-    nodeEnv: import.meta.env.NODE_ENV || 'development'
-  };
-
-  // 개발 환경 디버깅을 위한 로그
-  if (envConfig.isDevelopment) {
-    console.log('🔧 Environment Config:', {
-      isDevelopment: envConfig.isDevelopment,
-      bypassAuth: envConfig.bypassAuth,
-      testJWT: envConfig.testJWT,
-      nodeEnv: envConfig.nodeEnv
-    });
-  }
+  // HTTP-only 쿠키 방식에서는 환경변수 설정 불필요
 
   // Redux 상태
   const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
   const user = useSelector((state: RootState) => state.auth.user);
 
-  // 🔍 JWT 토큰 유효성 검사 함수
-  const validateToken = (token: string): boolean => {
-    try {
-      // JWT 토큰 구조 확인 (header.payload.signature)
-      const parts = token.split('.');
-      if (parts.length !== 3) {
-        console.log('❌ Invalid JWT format');
-        return false;
-      }
-
-      // 페이로드 디코딩
-      const payload = JSON.parse(atob(parts[1]));
-      const currentTime = Date.now() / 1000;
-
-      // 만료 시간 확인
-      if (payload.exp && payload.exp < currentTime) {
-        console.log('❌ JWT token expired');
-        return false;
-      }
-
-      console.log('✅ JWT token is valid');
-      return true;
-    } catch (error) {
-      console.log('❌ JWT token validation failed:', error);
-      return false;
-    }
-  };
+  // HTTP-only 쿠키 기반 인증에서는 JWT 토큰 유효성 검사 불필요
+  // 브라우저가 쿠키를 자동으로 관리하고 백엔드에서 검증
 
   // 🔄 인증 상태 확인 및 처리
   useEffect(() => {
@@ -80,135 +38,93 @@ const AuthWrapper: React.FC<AuthWrapperProps> = ({ children }) => {
       setIsChecking(true);
 
       try {
-        // 🧪 개발 환경 시나리오 1: 인증 우회 (JWT 없이도 모든 페이지 접근 가능)
-        if (envConfig.isDevelopment && envConfig.bypassAuth) {
-          console.log('🧪 Development: Auth bypassed - No JWT required');
-          // 이미 사용자가 설정되어 있지 않을 때만 설정
-          if (!user) {
-            const devUser = {
-              id: 1,
-              username: 'dev-user',
-              profileImage: 'https://via.placeholder.com/50x50/4ECDC4/FFFFFF?text=DEV',
-              role: 'USER'
-            };
-            console.log('🧪 HARDCODED: user 변수에 하드코딩된 개발 사용자 정보 설정:', devUser);
-            dispatch(setUser(devUser));
-          }
+        // 🎯 이미 Redux에 인증된 사용자 정보가 있으면 스킵
+        if (isAuthenticated && user) {
+          console.log('✅ User already authenticated in Redux:', user);
           setIsChecking(false);
           return;
         }
 
-        // 🧪 개발 환경 시나리오 2: JWT 테스트 (실제 JWT 검증 로직 테스트)
-        if (envConfig.isDevelopment && envConfig.testJWT) {
-          console.log('🧪 Development: Testing JWT validation');
-          const token = getToken();
+        // 🔄 새로고침 시 localStorage에서 사용자 정보 복원
+        const savedUserInfo = localStorage.getItem('userInfo');
+        if (savedUserInfo) {
+          try {
+            const parsedUserInfo = JSON.parse(savedUserInfo);
+            console.log('🔄 localStorage에서 사용자 정보 복원:', parsedUserInfo);
+            
+            // Redux에 사용자 정보 복원 (토큰은 HTTP-only 쿠키에 이미 있음)
+            dispatch(setUser(parsedUserInfo));
+            setIsChecking(false);
+            return;
+          } catch (error) {
+            console.error('❌ localStorage 사용자 정보 파싱 실패:', error);
+            // 파싱 실패 시 localStorage 정리
+            localStorage.removeItem('userInfo');
+          }
+        }
+
+        // HTTP-only 쿠키 사용 시 토큰 확인 스킵 (쿠키는 브라우저가 자동 관리)
+        console.log('🔄 HTTP-only 쿠키 기반 인증 - 백엔드 요청으로 인증 상태 확인');
+        
+        // 백엔드에 인증 상태 확인 요청 (쿠키가 유효하면 성공)
+        try {
+          console.log('🔄 백엔드 인증 상태 확인 중...');
           
-          if (!token) {
-            console.log('❌ No JWT token found - redirecting to login');
-            navigate('/login');
+          // 간단한 인증이 필요한 API 호출로 쿠키 유효성 확인
+          const response = await apiClient.api.successTest();
+          
+          if (response.data) {
+            console.log('✅ HTTP-only 쿠키 인증 성공 - 실제 사용자 정보 필요');
+            
+            // TODO: 실제 사용자 정보를 가져오는 API 호출 추가
+            // 현재는 사용자 정보 API가 없으므로 환경변수 조건 확인
+            
+            console.log('⚠️ 사용자 정보 API 미구현 - 환경변수 조건 확인');
             setIsChecking(false);
             return;
           }
-
-          if (!validateToken(token)) {
-            console.log('❌ Invalid JWT token - clearing and redirecting to login');
-            removeToken();
-            dispatch(clearUser());
-            navigate('/login');
-            setIsChecking(false);
-            return;
-          }
-
-          // 유효한 JWT가 있으면 사용자 정보 설정 (이미 설정되어 있지 않을 때만)
-          if (!user) {
-            const testUser = {
+          
+        } catch (authError) {
+          console.error('❌ HTTP-only 쿠키 인증 실패:', authError);
+          
+          // 🧪 개발 환경에서만 가짜 유저 정보 사용
+          const bypassAuth = import.meta.env.VITE_BYPASS_AUTH === 'true';
+          const testJwt = import.meta.env.VITE_TEST_JWT === 'true';
+          
+          if (bypassAuth && !testJwt) {
+            console.log('🧪 개발 환경 조건 만족 - 가짜 유저 정보 사용');
+            console.log('🔧 환경변수 - VITE_BYPASS_AUTH:', bypassAuth, 'VITE_TEST_JWT:', testJwt);
+            
+            const fallbackUser = {
               id: 1,
-              username: 'test-user',
-              profileImage: 'https://via.placeholder.com/50x50/96CEB4/FFFFFF?text=TEST',
+              username: 'authenticated-user',
+              profileImage: 'https://via.placeholder.com/50x50/4ECDC4/FFFFFF?text=USER',
               role: 'USER'
             };
-            console.log('🧪 HARDCODED: user 변수에 하드코딩된 테스트 사용자 정보 설정:', testUser);
-            dispatch(setUser(testUser));
+            
+            console.log('🧪 HARDCODED: 가짜 사용자 정보 설정:', fallbackUser);
+            dispatch(setUser(fallbackUser));
+            setIsChecking(false);
+            return;
           }
+          
+          console.log('🚪 인증 실패 - 로그인 페이지로 리다이렉트');
+          console.log('🔧 환경변수 - VITE_BYPASS_AUTH:', bypassAuth, 'VITE_TEST_JWT:', testJwt);
+          
+          // 쿠키가 무효하면 로그인 페이지로 리다이렉트
+          dispatch(clearUser());
+          localStorage.removeItem('userInfo'); // localStorage 정리
+          navigate('/login');
           setIsChecking(false);
           return;
         }
 
-        // 🚀 프로덕션 환경: 실제 JWT 검증
-        if (!envConfig.isDevelopment) {
-          console.log('🚀 Production: Full JWT validation');
-          const token = getToken();
-          
-          if (!token) {
-            console.log('❌ No JWT token found - redirecting to login');
-            navigate('/login');
-            setIsChecking(false);
-            return;
-          }
-
-          if (!validateToken(token)) {
-            console.log('❌ Invalid JWT token - clearing and redirecting to login');
-            removeToken();
-            dispatch(clearUser());
-            navigate('/login');
-            setIsChecking(false);
-            return;
-          }
-        }
-
-        // 🔧 개발 환경에서 인증 요구 (bypassAuth=false, testJWT=false)
-        if (envConfig.isDevelopment && !envConfig.bypassAuth && !envConfig.testJWT) {
-          console.log('🔧 Development: Auth required - Checking JWT token');
-          const token = getToken();
-          
-          if (!token) {
-            console.log('❌ No JWT token found - redirecting to login');
-            navigate('/login');
-            setIsChecking(false);
-            return;
-          }
-
-          if (!validateToken(token)) {
-            console.log('❌ Invalid JWT token - clearing and redirecting to login');
-            removeToken();
-            dispatch(clearUser());
-            navigate('/login');
-            setIsChecking(false);
-            return;
-          }
-
-          // 유효한 JWT가 있으면 사용자 정보 설정
-          if (!user) {
-            const authRequiredUser = {
-              id: 1,
-              username: 'auth-required-user',
-              profileImage: 'https://via.placeholder.com/50x50/FF6B6B/FFFFFF?text=AUTH',
-              role: 'USER'
-            };
-            console.log('🧪 HARDCODED: user 변수에 하드코딩된 인증 필요 사용자 정보 설정:', authRequiredUser);
-            dispatch(setUser(authRequiredUser));
-          }
-          setIsChecking(false);
-          return;
-        }
-
-        // ✅ 인증된 사용자 처리
-        if (!user && (isAuthenticated || getToken())) {
-          // 사용자 정보가 없지만 토큰이 있으면 기본 사용자 정보 설정
-          const authenticatedUser = {
-            id: 1,
-            username: 'authenticated-user',
-            profileImage: 'https://via.placeholder.com/50x50/FF6B6B/FFFFFF?text=USER',
-            role: 'USER'
-          };
-          console.log('🧪 HARDCODED: user 변수에 하드코딩된 인증된 사용자 정보 설정:', authenticatedUser);
-          dispatch(setUser(authenticatedUser));
-        }
+        // HTTP-only 쿠키 방식에서는 추가 사용자 정보 가져오기 불필요
+        // 로그인 시 이미 Redux에 저장된 정보 사용
 
         setIsChecking(false);
       } catch (error) {
         console.error('❌ Auth check failed:', error);
-        removeToken();
         dispatch(clearUser());
         navigate('/login');
         setIsChecking(false);
@@ -222,7 +138,7 @@ const AuthWrapper: React.FC<AuthWrapperProps> = ({ children }) => {
     }
 
     checkAuth();
-  }, [dispatch, navigate, location.pathname, envConfig.isDevelopment, envConfig.bypassAuth, envConfig.testJWT]);
+  }, [dispatch, navigate, location.pathname, user, isAuthenticated]);
 
   // 🔄 로딩 중 표시
   if (isChecking) {
@@ -237,7 +153,7 @@ const AuthWrapper: React.FC<AuthWrapperProps> = ({ children }) => {
   }
 
   // ✅ 인증된 사용자 또는 로그인 페이지인 경우 자식 컴포넌트 렌더링
-  if (isAuthenticated || user || getToken() || location.pathname === '/login' || location.pathname === '/signup' || (envConfig.isDevelopment && envConfig.bypassAuth)) {
+  if (isAuthenticated || user || location.pathname === '/login' || location.pathname === '/signup') {
     return <>{children}</>;
   }
 

@@ -10,6 +10,7 @@ import { setupListeners } from '@reduxjs/toolkit/query'; // React Query 리스�
 // 각 기능별 상태 관리자들 (Reducer)
 import authReducer from '@/features/auth/authSlice'; // 인증 관련 상태 (로그인/로그아웃)
 import counterReducer from '@/features/counter/counterSlice'; // 카운터 예제 (테스트용)
+import searchReducer from '@/features/search/searchSlice'; // 검색 관련 상태 (검색 패널, 결과)
 // API 서비스 (React Query + Redux 통합)
 import { apiService } from '@/lib/api';
 
@@ -19,6 +20,7 @@ export const store = configureStore({
   reducer: {
     auth: authReducer, // 인증 상태 관리
     counter: counterReducer, // 카운터 상태 관리 (예제)
+    search: searchReducer, // 검색 상태 관리
     [apiService.reducerPath]: apiService.reducer, // API 상태 관리
   },
   

@@ -1,35 +1,88 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Settings, Camera, Plus, Grid3x3, Bookmark, User } from "lucide-react";
 import { useGetUserPosts } from '@/lib/postApi';
-import { useAuth } from '@/hooks/useAuth'; 
+import { useSelector } from 'react-redux';
+import { RootState } from '@/app/store';
 import { PostDetailModal } from '@/components/PostDetailModal'; // ✅ 모달 import
+import { apiClient } from '@/lib/api'; // ✅ API 클라이언트 import
 
 const MyProfilePage = () => {
   const [activeTab, setActiveTab] = useState("posts");
-  const auth = useAuth();
-  const userId = auth?.userId;
-  const { data: userPosts, isLoading } = useGetUserPosts(userId);
-
-  const user = {
-    username: "user01",
-    realName: "홍길동",
-    profileImageUrl: "",
-    stats: {
-      posts: 0,
-      followers: 100,
-      following: 100,
-    },
-  };
   
-  // 하드코딩된 사용자 정보 사용 알림
-  console.log('🧪 HARDCODED: user 변수에 하드코딩된 사용자 정보 설정:', user);
+  // Redux에서 사용자 정보 가져오기
+  const user = useSelector((state: RootState) => state.auth.user);
+  const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
+  
+  const { data: userPosts, isLoading } = useGetUserPosts(user?.id);
 
-  const [previewImage, setPreviewImage] = useState<string | null>(user.profileImageUrl);
-  const [realName, setRealName] = useState(user.realName);
+  // hooks는 항상 상단에서 호출
+  const [previewImage, setPreviewImage] = useState<string | null>(user?.profileImage || "");
+  const [realName, setRealName] = useState(user?.username || "");
   const [isEditing, setIsEditing] = useState(false);
+  const [selectedPostId, setSelectedPostId] = useState<number | null>(null);
+  
+  // 📊 통계 정보를 위한 state
+  const [followersCount, setFollowersCount] = useState<number>(-1);
+  const [followingsCount, setFollowingsCount] = useState<number>(-1);
+  const [isStatsLoading, setIsStatsLoading] = useState(false);
+
+  // 📊 팔로워/팔로잉 통계 가져오기
+  useEffect(() => {
+    const fetchUserStats = async () => {
+      if (!user?.id) return;
+      
+      setIsStatsLoading(true);
+      try {
+        console.log('📊 사용자 통계 가져오기 시작...', user.id);
+        
+        // 팔로워 수와 팔로잉 수를 병렬로 가져오기
+        const [followersRes, followingsRes] = await Promise.all([
+          apiClient.api.getFollowers(user.id),
+          apiClient.api.getFollowings(user.id)
+        ]);
+
+        const followersCount = followersRes.data?.length || 0;
+        const followingsCount = followingsRes.data?.length || 0;
+
+        setFollowersCount(followersCount);
+        setFollowingsCount(followingsCount);
+        
+        console.log('📊 통계 정보 업데이트:', {
+          followersCount,
+          followingsCount,
+          postsCount: userPosts?.content?.length || 0
+        });
+        
+      } catch (error) {
+        console.error('❌ 사용자 통계 가져오기 실패:', error);
+        // 에러 발생 시 -1로 설정
+        setFollowersCount(-1);
+        setFollowingsCount(-1);
+      } finally {
+        setIsStatsLoading(false);
+      }
+    };
+
+    fetchUserStats();
+  }, [user?.id, userPosts?.content?.length]);
+
+  // 사용자 정보 확인
+  console.log('✅ Redux에서 가져온 사용자 정보:', user);
+  console.log('✅ 인증 상태:', isAuthenticated);
+  
+  // 인증되지 않은 경우 처리
+  if (!isAuthenticated || !user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-instagram-muted">로그인이 필요합니다.</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -42,8 +95,7 @@ const MyProfilePage = () => {
 
   const handleSave = () => setIsEditing(false);
 
-  // ✅ 추가: 모달 상태
-  const [selectedPostId, setSelectedPostId] = useState<number | null>(null);
+  // ✅ 모달 상태 핸들러들
   const handleOpenPostDetail = (postId: number) => setSelectedPostId(postId);
   const handleClosePostDetail = () => setSelectedPostId(null);
 
@@ -92,15 +144,19 @@ const MyProfilePage = () => {
           <div className="flex gap-10 text-sm">
             <div className="flex gap-1">
               <span className="text-profile-secondary">게시물</span>
-              <span className="font-semibold text-profile-text">{user.stats.posts}</span>
+              <span className="font-semibold text-profile-text">{userPosts?.content?.length || 0}</span>
             </div>
             <div className="flex gap-1">
               <span className="text-profile-secondary">팔로워</span>
-              <span className="font-semibold text-profile-text">{user.stats.followers}</span>
+              <span className="font-semibold text-profile-text">
+                {isStatsLoading ? '...' : followersCount === -1 ? '-' : followersCount}
+              </span>
             </div>
             <div className="flex gap-1">
               <span className="text-profile-secondary">팔로우</span>
-              <span className="font-semibold text-profile-text">{user.stats.following}</span>
+              <span className="font-semibold text-profile-text">
+                {isStatsLoading ? '...' : followingsCount === -1 ? '-' : followingsCount}
+              </span>
             </div>
           </div>
 
