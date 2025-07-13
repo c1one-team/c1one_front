@@ -16,5 +16,6 @@
     "allowJs": true,
     "noUnusedLocals": false,
     "strictNullChecks": false
-  }
+  },
+  "include": ["src/env.d.ts", "src"]
 }
