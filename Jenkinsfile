@@ -10,7 +10,7 @@ pipeline {
 
         DEPLOY_SERVER_USER = "${env.DEPLOY_SERVER_USER}"
         DEPLOY_SERVER_IP = "${env.DEPLOY_SERVER_IP}"
-        APP_PORT = "80"
+        APP_PORT = "8081"
         APP_CONTAINER_NAME = "c1one-front-container"
 
         VITE_BYPASS_AUTH = "false"
