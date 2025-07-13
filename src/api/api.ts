@@ -382,7 +382,7 @@ export interface HomePostResponse {
   likeCount?: number;
   likeUsers?: LikeUserDto[];
   likedByMe?: boolean;
-  bookmarkedByMe?: boolean;
+  bookmarkByMe?: boolean;
   comments?: CommentResponse[];
 }
 
@@ -780,6 +780,39 @@ export class Api<
         ...params,
       }),
 
+    /**
+     * No description
+     *
+     * @tags post-controller
+     * @name GetRecommendedPosts
+     * @request GET:/posts/home/recommend
+     * @secure
+     */
+    getRecommendedPosts: (params: RequestParams = {}) =>
+      this.request<HomePostResponse[], any>({
+        path: `/posts/home/recommend`,
+        method: "GET",
+        secure: true,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags post-controller
+     * @name GetFollowingRecentPosts
+     * @request GET:/posts/home/following
+     * @secure
+     */
+    getFollowingRecentPosts: (params: RequestParams = {}) =>
+      this.request<HomePostResponse[], any>({
+        path: `/api/posts/home/following`,
+        method: "GET",
+        secure: true,
+        ...params,
+      }),
+  };
+  comments = {
     /**
      * @description 특정 댓글에 좋아요를 합니다.
      *

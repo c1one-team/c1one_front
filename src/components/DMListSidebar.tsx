@@ -8,6 +8,7 @@ interface DMListSidebarProps {
   onSelectRoom: (roomId: number) => void;
 }
 
+
 function isMe(userId?: number) {
   // 예: localStorage, useContext, Redux 등에서 본인 ID 불러오기
   const myId = Number(localStorage.getItem('userId')) || 1;
@@ -53,9 +54,8 @@ export default function DMListSidebar({ onSelectRoom, selectedRoomId }: DMListSi
   //     .then(res => setChatRooms(res.data))
   //     .catch(() => setChatRooms([]));
   // }, []);
-
   useEffect(() => {
-    apiClient.api.getMyChatRooms()
+    apiClient.comments.getMyChatRooms()
       .then(res => {
         console.log('채팅방 목록 응답:', res);
         setChatRooms(Array.isArray(res) ? res : []);

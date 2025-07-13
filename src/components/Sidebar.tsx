@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link, useLocation } from 'react-router-dom';
 import { RootState } from '@/app/store';
 import { removeToken } from '@/lib/auth';
 import { setLogout } from '@/features/auth/authSlice';
-import { apiClient } from '@/lib/api';
+import { Api } from '@/api/api';
+import { CreatePostModal } from './post/CreatePostModal';
+import customAxiosInstance from '@/lib/axios';
 import {
   Home,
   Search,
@@ -32,6 +34,7 @@ const menuItems = [
 export const Sidebar = () => {
   const dispatch = useDispatch();
   const location = useLocation();
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const user = useSelector((state: RootState) => state.auth.user);
   const isAdmin = user?.role === 'ADMIN';
@@ -41,6 +44,7 @@ export const Sidebar = () => {
       console.log('🚪 로그아웃 처리 시작...');
       
       // 1. 백엔드 API 호출 (HTTP-only 쿠키 제거)
+      const apiClient = new Api(customAxiosInstance);
       await apiClient.api.logout();
       console.log('✅ 백엔드 로그아웃 API 호출 성공 (HTTP-only 쿠키 제거됨)');
       
@@ -59,6 +63,7 @@ export const Sidebar = () => {
   };
 
   return (
+    <>
       <div className="w-64 bg-instagram-dark border-r border-instagram-border h-screen sticky top-0 p-4">
         {/* 로고 */}
         <div className="mb-8 p-4">
@@ -66,48 +71,63 @@ export const Sidebar = () => {
             Uniqram
           </Link>
         </div>
-
+  
         {/* 메뉴 항목들 */}
         <nav className="space-y-2">
           {menuItems.map((item, index) => (
+            item.label === '만들기' ? (
+              <div
+                key={index}
+                onClick={() => setIsCreateModalOpen(true)} // ✅ 모달 열기
+                className="flex items-center space-x-3 p-3 rounded-lg cursor-pointer transition-colors duration-200 text-instagram-muted hover:bg-instagram-gray hover:text-instagram-text"
+              >
+                <item.icon size={24} />
+                <span className="text-base font-medium">{item.label}</span>
+              </div>
+            ) : (
               <Link
-                  key={index}
-                  to={item.path}
-                  className={`flex items-center space-x-3 p-3 rounded-lg cursor-pointer transition-colors duration-200 ${
-                      location.pathname === item.path
-                          ? 'bg-instagram-gray text-instagram-text'
-                          : 'text-instagram-muted hover:bg-instagram-gray hover:text-instagram-text'
-                  }`}
+                key={index}
+                to={item.path}
+                className={`flex items-center space-x-3 p-3 rounded-lg cursor-pointer transition-colors duration-200 ${
+                  location.pathname === item.path
+                    ? 'bg-instagram-gray text-instagram-text'
+                    : 'text-instagram-muted hover:bg-instagram-gray hover:text-instagram-text'
+                }`}
               >
                 <item.icon size={24} />
                 <span className="text-base font-medium">{item.label}</span>
               </Link>
+            )
           ))}
-
+  
           {/* 로그아웃 버튼 */}
           <div
-              onClick={handleLogout}
-              className="flex items-center space-x-3 p-3 rounded-lg cursor-pointer transition-colors duration-200 text-instagram-muted hover:bg-instagram-gray hover:text-instagram-text"
+            onClick={handleLogout}
+            className="flex items-center space-x-3 p-3 rounded-lg cursor-pointer transition-colors duration-200 text-instagram-muted hover:bg-instagram-gray hover:text-instagram-text"
           >
             <MoreHorizontal size={24} />
             <span className="text-base font-medium">로그아웃</span>
           </div>
-
+  
           {/* 관리자만 보이는 대시보드 버튼 */}
           {isAdmin && (
-              <Link
-                  to="/admin/dashboard"
-                  className={`flex items-center space-x-3 p-3 rounded-lg cursor-pointer transition-colors duration-200 ${
-                      location.pathname.startsWith('/admin/dashboard')
-                          ? 'bg-instagram-gray text-instagram-text'
-                          : 'text-instagram-muted hover:bg-instagram-gray hover:text-instagram-text'
-                  }`}
-              >
-                <LayoutDashboard size={24} />
-                <span className="text-base font-medium">대시보드</span>
-              </Link>
+            <Link
+              to="/admin/dashboard"
+              className={`flex items-center space-x-3 p-3 rounded-lg cursor-pointer transition-colors duration-200 ${
+                location.pathname.startsWith('/admin/dashboard')
+                  ? 'bg-instagram-gray text-instagram-text'
+                  : 'text-instagram-muted hover:bg-instagram-gray hover:text-instagram-text'
+              }`}
+            >
+              <LayoutDashboard size={24} />
+              <span className="text-base font-medium">대시보드</span>
+            </Link>
           )}
         </nav>
       </div>
-  );
+  
+      {/* ✅ 모달 컴포넌트 추가 */}
+      <CreatePostModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
+    </>
+  );  
 };

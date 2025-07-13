@@ -4,11 +4,12 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { HomePostResponse, CommentResponse, deletePost } from '@/lib/postApi';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import PostEditModal from './post/PostEditModal'; // ✅ PostEditModal import
 
 interface PostCommentsProps {
   post: HomePostResponse;
   comments: CommentResponse[];
-  onClose: () => void; // ✅ 모달 닫기 함수 추가
+  onClose: () => void;
 }
 
 export const PostComments: React.FC<PostCommentsProps> = ({ post, comments, onClose }) => {
@@ -16,6 +17,7 @@ export const PostComments: React.FC<PostCommentsProps> = ({ post, comments, onCl
   const [likesCount, setLikesCount] = useState(post.likeCount || 0);
   const [newComment, setNewComment] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false); // ✅ 수정 모달 상태 추가
 
   const queryClient = useQueryClient();
 
@@ -24,7 +26,7 @@ export const PostComments: React.FC<PostCommentsProps> = ({ post, comments, onCl
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['userPosts'] });
       alert('삭제 완료');
-      onClose(); // ✅ 모달 닫기
+      onClose();
     },
     onError: (err) => {
       alert('삭제 실패: ' + err.message);
@@ -52,6 +54,17 @@ export const PostComments: React.FC<PostCommentsProps> = ({ post, comments, onCl
 
   return (
     <div className="flex flex-col h-full relative">
+      {/* ✅ PostEditModal 연결 */}
+      {isEditOpen && (
+        <PostEditModal
+          postId={post.postId}
+          initialContent={post.content}
+          initialLocation={post.location || ''}
+          initialImages={post.mediaUrls}
+          onClose={() => setIsEditOpen(false)}
+        />
+      )}
+
       {/* Post Header */}
       <div className="flex items-center justify-between p-4 border-b border-instagram-border relative">
         <div className="flex items-center space-x-3">
@@ -73,7 +86,6 @@ export const PostComments: React.FC<PostCommentsProps> = ({ post, comments, onCl
           </div>
         </div>
 
-        {/* 점세개 버튼 */}
         <button
           className="text-instagram-muted hover:text-instagram-text"
           onClick={(e) => {
@@ -86,15 +98,18 @@ export const PostComments: React.FC<PostCommentsProps> = ({ post, comments, onCl
 
         {/* 메뉴 팝업 */}
         {menuOpen && (
-          <div className="absolute top-10 right-4 bg-white border rounded shadow p-2 z-50">
+          <div className="absolute top-10 right-4 bg-gray-600 border rounded shadow p-2 z-50">
             <button
-              className="block w-full text-left px-4 py-2 hover:bg-gray-100"
-              onClick={() => alert('수정하기는 아직 미구현입니다')}
+              className="block w-full text-left px-4 py-2 hover:bg-gray-600 text-gray-100"
+              onClick={() => {
+                setIsEditOpen(true); // ✅ 수정 모달 열기
+                setMenuOpen(false);  // 메뉴 닫기
+              }}
             >
               수정하기
             </button>
             <button
-              className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-500"
+              className="block w-full text-left px-4 py-2 hover:bg-gray-600 text-gray-100"
               onClick={handleDelete}
             >
               삭제하기
@@ -141,7 +156,7 @@ export const PostComments: React.FC<PostCommentsProps> = ({ post, comments, onCl
         <div className="space-y-4 p-4">
           {comments.length > 0 ? (
             comments.map((comment) => (
-              <div key={comment.userId} className="flex items-start space-x-3">
+              <div key={comment.commentId} className="flex items-start space-x-3">
                 <img
                   src={'https://via.placeholder.com/32'}
                   alt={comment.userName}

@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Settings, Camera, Plus, Grid3x3, Bookmark, User } from "lucide-react";
-import { useGetUserPosts } from '@/lib/postApi';
-import { useAuth } from '@/hooks/useAuth'; 
-import { PostDetailModal } from '@/components/PostDetailModal'; // ✅ 모달 import
+import { useGetUserPosts, fetchMyBookmarks, BookmarkPostResponse } from '@/lib/postApi';
+import { useAuth } from '@/hooks/useAuth';
+import { PostDetailModal } from '@/components/PostDetailModal';
+
+const S3_BASE_URL = import.meta.env.VITE_S3_BASE_URL || "https://uniqrambucket.s3.ap-northeast-2.amazonaws.com/";
 
 const MyProfilePage = () => {
   const [activeTab, setActiveTab] = useState("posts");
@@ -18,7 +20,7 @@ const MyProfilePage = () => {
     realName: "홍길동",
     profileImageUrl: "",
     stats: {
-      posts: 0,
+      posts: userPosts?.content?.length || 0,
       followers: 100,
       following: 100,
     },
@@ -42,10 +44,28 @@ const MyProfilePage = () => {
 
   const handleSave = () => setIsEditing(false);
 
-  // ✅ 추가: 모달 상태
   const [selectedPostId, setSelectedPostId] = useState<number | null>(null);
   const handleOpenPostDetail = (postId: number) => setSelectedPostId(postId);
   const handleClosePostDetail = () => setSelectedPostId(null);
+
+  // ✅ 북마크 상태 추가
+  const [savedPosts, setSavedPosts] = useState<BookmarkPostResponse[]>([]);
+  const [savedLoading, setSavedLoading] = useState(false);
+
+  useEffect(() => {
+    console.log("✅ activeTab changed:", activeTab);
+    if (activeTab === "saved") {
+      console.log("✅ saved 탭 들어옴, fetchMyBookmarks 실행");
+      setSavedLoading(true);
+      fetchMyBookmarks()
+        .then((data) => {
+          console.log("✅ fetchMyBookmarks data:", data); // ✅ 여기!
+          setSavedPosts(data);
+        })
+        .catch((error) => console.error("❌ 북마크 불러오기 실패:", error))
+        .finally(() => setSavedLoading(false));
+    }
+  }, [activeTab]);
 
   return (
     <div className="w-full max-w-[935px] mx-auto bg-background min-h-screen px-4 pt-10">
@@ -155,15 +175,20 @@ const MyProfilePage = () => {
             <div className="text-center text-gray-500">로딩 중...</div>
           ) : userPosts?.content && userPosts.content.length > 0 ? (
             <div className="grid grid-cols-3 gap-2">
-              {userPosts.content.map((post) => (
-                <img
-                  key={post.postId}
-                  src={post.representativeImageUrl}
-                  alt="Post"
-                  className="w-full h-32 object-cover cursor-pointer"
-                  onClick={() => handleOpenPostDetail(post.postId)} // ✅ 클릭 시 모달 열기
-                />
-              ))}
+              {userPosts.content.map((post) => {
+                const imageUrl = post.representativeImageUrl.startsWith('http')
+                  ? post.representativeImageUrl
+                  : `${S3_BASE_URL}${post.representativeImageUrl}`;
+                return (
+                  <img
+                    key={post.postId}
+                    src={imageUrl}
+                    alt="Post"
+                    className="w-full h-32 object-cover cursor-pointer"
+                    onClick={() => handleOpenPostDetail(post.postId)}
+                  />
+                );
+              })}
             </div>
           ) : (
             <EmptyState
@@ -176,12 +201,33 @@ const MyProfilePage = () => {
         </TabsContent>
 
         <TabsContent value="saved" className="mt-8">
-          <EmptyState
-            icon={Bookmark}
-            title="저장"
-            subtitle="다시 보고 싶은 콘텐츠를 저장하세요."
-            linkText="저장된 콘텐츠 보기"
-          />
+          {savedLoading ? (
+            <div className="text-center text-gray-500">로딩 중...</div>
+          ) : savedPosts.length > 0 ? (
+            <div className="grid grid-cols-3 gap-2">
+              {savedPosts.map((post) => {
+                const imageUrl = post.representativeImageUrl.startsWith('http')
+                  ? post.representativeImageUrl
+                  : `${S3_BASE_URL}${post.representativeImageUrl}`;
+                return (
+                  <img
+                    key={post.postId}
+                    src={imageUrl}
+                    alt="Saved Post"
+                    className="w-full h-32 object-cover cursor-pointer"
+                    onClick={() => handleOpenPostDetail(post.postId)}
+                  />
+                );
+              })}
+            </div>
+          ) : (
+            <EmptyState
+              icon={Bookmark}
+              title="저장"
+              subtitle="다시 보고 싶은 콘텐츠를 저장하세요."
+              linkText="저장된 콘텐츠 보기"
+            />
+          )}
         </TabsContent>
 
         <TabsContent value="tagged" className="mt-8">
@@ -194,7 +240,6 @@ const MyProfilePage = () => {
         </TabsContent>
       </Tabs>
 
-      {/* ✅ PostDetailModal 모달 연결 */}
       {selectedPostId && (
         <PostDetailModal postId={selectedPostId} onClose={handleClosePostDetail} />
       )}

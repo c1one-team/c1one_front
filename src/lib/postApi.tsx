@@ -12,6 +12,8 @@ export interface HomePostResponse {
     likeCount: number;
     likeUsers: LikeUserDto[];
     likedByMe: boolean;
+
+    bookmarkedByMe: boolean; 
   
     comments: CommentResponse[];
 }
@@ -53,10 +55,31 @@ export interface CommentResponse {
     empty: boolean;
   }
 
+  export interface PostCreateRequest {
+    content: string;
+    location: string;
+    mediaUrls: string[];
+  }
+
+  export interface PostUpdateRequest {
+    content: string;
+    location: string;
+    remainImageUrls: string[];
+  }
+
+  export interface BookmarkRequest {
+    postId: number;
+  }
+
+  export interface BookmarkPostResponse {
+    postId: number;
+    representativeImageUrl: string;
+  }
+
   // 팔로잉한 사람의 게시물 조회
   export const getFollowingRecentPosts = async (): Promise<HomePostResponse[]> => {
     try {
-      const response = await axios.get('/posts/home/following');
+      const response = await axios.get('/api/posts/home/following');
       console.log('response.data:', response.data);
       return response.data;
     } catch (error) {
@@ -124,4 +147,26 @@ export const useGetPostDetail = (postId: number | undefined) => {
 export const deletePost = async (postId: number) => {
   const response = await axios.delete(`/api/posts/${postId}`);
   return response.data;
+};
+
+// 게시물 생성
+export const createPost = async (data: PostCreateRequest) => {
+  const response = await axios.post('/api/posts', data);
+  return response.data.data;
+};
+
+// 게시물 수정
+export const updatePost = async (postId: number, data: PostUpdateRequest) => {
+  const response = await axios.patch(`/api/posts/${postId}`, data);
+  return response.data;
+};
+
+export const toggleBookmark = async (postId: number): Promise<boolean> => {
+  const response = await axios.post('/api/bookmarks', { postId });
+  return response.data.data; // Boolean (true: 등록, false: 해제)
+};
+
+export const fetchMyBookmarks = async (): Promise<BookmarkPostResponse[]> => {
+  const res = await axios.get('/api/bookmarks');
+  return res.data.data;
 };
