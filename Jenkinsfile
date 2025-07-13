@@ -15,7 +15,7 @@ pipeline {
 
         VITE_BYPASS_AUTH = "false"
         VITE_TEST_JWT = "true"
-        VITE_API_BASE_URL = "http://localhost:8082/api"
+        VITE_API_BASE_URL = "http://localhost:8080/api"
     }
 
     stages {
