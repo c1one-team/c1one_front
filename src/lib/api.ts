@@ -100,6 +100,37 @@ export interface AuthResponse {
   user: User;    // 사용자 정보
 }
 
+// DM 멤버 타입
+export interface MemberDto {
+  /** @format int64 */
+  userId?: number;
+  username?: string;
+}
+// 채팅방 타입
+export interface ChatRoomList {
+  /** @format int64 */
+  chatroomId?: number;
+  type?: "DM" | "GROUP";
+  /** @format date-time */
+  createdAt?: string;
+  lastMessage?: string;
+  /** @format date-time */
+  lastMessageAt?: string;
+  members?: MemberDto[];
+}
+// 채팅 메세지 타입
+export interface ChatMessageList {
+  /** @format int64 */
+  messageId?: number;
+  /** @format int64 */
+  senderId?: number;
+  senderName?: string;
+  message?: string;
+  /** @format date-time */
+  createdAt?: string;
+  isRead?: boolean;
+}
+
 // 🔧 커스텀 baseQuery - 백엔드 연결 실패 시 오류 처리
 // 백엔드 서버가 없으면 명확한 오류를 반환하도록 수정
 const customBaseQuery = async (args: any, api: any, extraOptions: any) => {
@@ -143,7 +174,7 @@ const customBaseQuery = async (args: any, api: any, extraOptions: any) => {
 export const apiService = createApi({
   reducerPath: 'api', // Redux 스토어에서 사용할 경로
   baseQuery: customBaseQuery, // 위에서 정의한 커스텀 baseQuery 사용
-  tagTypes: ['Post', 'User', 'Comment', 'Profile', 'Follow'], // 캐시 태그 타입들
+  tagTypes: ['Post', 'User', 'Comment', 'Profile', 'Follow', 'ChatRoom', 'ChatMessage'], // 캐시 태그 타입들
   endpoints: (builder) => ({
     // 🔐 인증 관련 API 엔드포인트들
 
@@ -274,6 +305,19 @@ export const apiService = createApi({
       invalidatesTags: (result, error, { postId }) => [{ type: 'Comment', id: postId }], // 해당 게시물 댓글 캐시 무효화
     }),
 
+    // ✉️ 디엠 관련 API 엔드포인트들
+
+    //채팅방 목록 가져오기
+    getChatRooms: builder.query<ChatRoomList[], void>({
+      query: () => '/chatrooms',
+      providesTags: ['ChatRoom'],
+    }),
+
+    getChatMessages: builder.query<ChatMessageList[], number>({
+      query: (chatRoomId) => `/chatrooms/${chatRoomId}/messages`,
+      providesTags: (result, error, chatRoomId) => [{ type: 'ChatMessage', id: chatRoomId }],
+    }),
+
     // 👤 사용자 관련 API 엔드포인트들
 
 
@@ -343,10 +387,15 @@ export const {
   useCreateFollowMutation, // 팔로우 하기 훅
   useUnfollowMutation,     // 언팔로우 하기 훅
   
+  // 디엠 관련 훅들
+  useGetChatRoomsQuery, //채팅방 목록 가져오기
+  useGetChatMessagesQuery, //채팅 메세지 목록 가져오기
+  
   // postApi.tsx에서 사용하던 훅들 추가
   useGetUserPostsQuery,    // 사용자 게시물 목록 가져오기 훅
   useGetPostDetailQuery,   // 게시물 상세 정보 가져오기 훅
   useDeletePostMutation,   // 게시물 삭제 훅
+
 } = apiService;
 
 // ========================================
