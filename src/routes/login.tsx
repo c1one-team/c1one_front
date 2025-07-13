@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
-import { SigninRequest } from '@/api/api';
-import { apiClient } from '@/lib/api';
+import { useLoginMutation } from '@/lib/api';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { Eye, EyeOff } from 'lucide-react';
-import { setToken, removeToken } from '@/lib/auth';
+import { removeToken } from '@/lib/auth';
 import { useDispatch } from 'react-redux';
 import { setLogin, clearUser } from '@/features/auth/authSlice';
 
@@ -16,13 +15,9 @@ interface LoginForm {
 }
 
 const LoginPage: React.FC = () => {
-    const [isLoading, setIsLoading] = useState(false);
     const navigate = useNavigate();
     const dispatch = useDispatch();
-
-
-    // 전역 API 클라이언트 사용
-
+    const [loginMutation, { isLoading }] = useLoginMutation();
 
     const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>();
     const [showPassword, setShowPassword] = useState(false);
@@ -31,97 +26,57 @@ const LoginPage: React.FC = () => {
 
     const onSubmit = async (data: LoginForm) => {
         try {
-            setIsLoading(true);
-
             // 🗑️ 로그인 시작 전에 기존 인증 정보 제거 (새로운 토큰을 받기 위해)
             console.log('🗑️ 기존 토큰 및 사용자 정보 제거 중...');
             removeToken(); // localStorage에서 기존 토큰 제거
             localStorage.removeItem('currentUsername'); // localStorage에서 기존 currentUsername 제거
+            localStorage.removeItem('userInfo'); // localStorage에서 기존 사용자 정보 제거
             dispatch(clearUser()); // Redux에서 기존 사용자 정보 제거
 
-            // Swagger API 사용
-            const signinData: SigninRequest = {
+            // Redux Toolkit Query 사용
+            const signinData = {
                 username: data.username,
                 password: data.password
             };
 
-
             console.log('🔄 로그인 요청 데이터:', signinData);
 
-            const response = await apiClient.api.signin(signinData);
+            const responseData = await loginMutation(signinData).unwrap() as any;
 
-            console.log('📥 로그인 응답 전체:', response);
-            console.log('📥 응답 상태:', response.status);
+            console.log('📥 로그인 응답 전체:', responseData);
+            console.log('📥 응답 타입:', typeof responseData);
+            console.log('📥 응답 객체 키들:', Object.keys(responseData));
 
-            // 200 OK 응답 확인
-            if (response.status === 200 && response.data) {
-                const responseData = response.data as any;
+            // 응답 데이터 확인
+            if (responseData && responseData.user) {
+                const user = responseData.user;
+                
+                console.log('🍪 HTTP-only 쿠키로 토큰 설정됨 (withCredentials: true로 자동 포함)');
+                console.log('🚫 accessToken, refreshToken 무시 (HTTP-only cookie 사용)');
 
-                // 1. message를 console에 출력
-                if (responseData.message) {
-                    console.log('📧 백엔드 메시지:', responseData.message);
-                }
+                // Redux 상태 업데이트
+                const userInfo = {
+                    id: user.id,
+                    username: user.username,
+                    role: user.role || 'USER',
+                    ...user
+                };
+                
+                dispatch(setLogin(userInfo));
+                localStorage.setItem('userInfo', JSON.stringify(userInfo));
+                
+                console.log('✅ Redux에 저장된 사용자 정보:', userInfo);
 
-                // 2. accessToken을 JWT 토큰으로 설정
-                if (responseData.accessToken && responseData.user) {
-                    const user = responseData.user;
-                    setToken(responseData.accessToken);
-                    console.log('✅ JWT 토큰 localStorage에 저장 완료');
-                    console.log('🔑 새로운 토큰 받아옴:', responseData.accessToken.substring(0, 20) + '...');
+                toast.success('로그인에 성공했습니다!', {
+                    id: 'login-success',
+                    duration: 3000,
+                });
 
-                    // 🔒 HTTP Only 쿠키 + localStorage 혼합 사용
-                    // - 백엔드: HTTP-only 쿠키로 토큰 설정 (보안상 안전, XSS 공격 방지)
-                    // - 프론트엔드: localStorage에도 토큰 저장 (API 요청 시 Authorization 헤더용)
-                    // - axios는 withCredentials: true로 HTTP-only 쿠키 자동 포함
-                    console.log('🍪 백엔드에서 HTTP-only 쿠키도 설정됨 (withCredentials: true로 자동 포함)');
+                navigate('/');
 
-                    // Redux 상태 업데이트 (slice 사용)
-                    // 백엔드 응답에서 사용자 정보 추출
-                    const userInfo = responseData.user || {};
-                    
-                    const currentUsername = userInfo.username || data.username;
-                    
-                    dispatch(setLogin({
-                        id: userInfo.id || responseData.id || 1, // 백엔드 응답에서 실제 사용자 ID 사용
-                        username: currentUsername, // 백엔드 응답 우선, 없으면 입력값 사용
-                        profileImage: userInfo.profileImage || 'https://via.placeholder.com/50x50/4ECDC4/FFFFFF?text=USER',
-                        role: userInfo.role || 'USER' // 백엔드 응답에서 실제 사용자 역할 사용
-
-                    }));
-                    
-                                          // localStorage에도 currentUsername 저장
-                      localStorage.setItem('currentUsername', currentUsername);
-                      console.log('✅ localStorage에 currentUsername 저장:', currentUsername);
-                    
-                    console.log('✅ Redux에 저장된 사용자 정보:', {
-                        id: userInfo.id || responseData.id || 1,
-                        username: currentUsername,
-                        role: userInfo.role || 'USER'
-                    });
-                    console.log('✅ currentUsername으로 저장된 username:', currentUsername);
-                    console.log('✅ Redux 상태 업데이트 완료');
-
-                    // 3. redirectUrl 무시하고 index.tsx로 리다이렉트
-                    console.log('🚫 redirectUrl 무시:', responseData.redirectUrl);
-
-                    toast.success('로그인에 성공했습니다!', {
-                        id: 'login-success',
-                        duration: 3000,
-                    });
-
-                    // index.tsx로 리다이렉트 (/ 경로)
-                    navigate('/');
-
-                } else {
-                    console.error('❌ accessToken이 응답에 없습니다:', responseData);
-                    toast.error('서버 응답에 토큰이 없습니다.', {
-                        id: 'login-error',
-                        duration: 3000,
-                    });
-                }
             } else {
-                console.error('❌ 응답 상태가 200이 아닙니다:', response.status);
-                toast.error('로그인 처리 중 오류가 발생했습니다.', {
+                console.error('❌ user 정보가 응답에 없습니다:', responseData);
+                toast.error('서버 응답에 사용자 정보가 없습니다.', {
                     id: 'login-error',
                     duration: 3000,
                 });
@@ -164,8 +119,7 @@ const LoginPage: React.FC = () => {
             });
         }
     } finally {
-            setIsLoading(false);
-
+            console.log('🏁 로그인 함수 종료');
         }
     };
 

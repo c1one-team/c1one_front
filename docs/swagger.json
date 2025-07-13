@@ -684,6 +684,22 @@
       }
     },
     "/api/users/profiles": {
+      "post": {
+        "tags": ["profile-controller"],
+        "operationId": "createProfile",
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileResponseDto"
+                }
+              }
+            }
+          }
+        }
+      },
       "patch": {
         "tags": ["profile-controller"],
         "operationId": "patchProfile",

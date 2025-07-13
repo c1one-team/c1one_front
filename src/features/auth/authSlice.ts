@@ -1,12 +1,12 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
-// 👤 사용자 정보 인터페이스
+// 👤 사용자 정보 인터페이스 (백엔드 응답에 맞춤)
 interface User {
   id: number;
   username: string;
-  profileImage?: string;
-  // 필요한 다른 사용자 정보 추가
   role: string;
+  // 백엔드에서 추가로 제공하는 속성들을 위한 인덱스 시그니처
+  [key: string]: any;
 }
 
 // 🔐 인증 상태 인터페이스

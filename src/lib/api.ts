@@ -52,15 +52,14 @@ export interface AuthResponse {
 // 백엔드 서버가 없으면 명확한 오류를 반환하도록 수정
 const customBaseQuery = async (args: any, api: any, extraOptions: any) => {
   try {
-    // 기본 fetch 설정
+    // 기본 fetch 설정 - HTTP-only 쿠키 지원
     const result = await fetchBaseQuery({
       baseUrl: 'http://localhost:8080/api', // 백엔드 서버 주소
+      credentials: 'include', // HTTP-only 쿠키 포함
       prepareHeaders: (headers) => {
-        // 로컬 스토리지에서 토큰을 가져와서 요청 헤더에 추가
-        const token = localStorage.getItem('token');
-        if (token) {
-          headers.set('authorization', `Bearer ${token}`);
-        }
+        // HTTP-only 쿠키 방식 사용하므로 Authorization 헤더 불필요
+        // 쿠키가 자동으로 포함됩니다
+        console.log('🍪 HTTP-only 쿠키를 사용한 인증 (credentials: include)');
         return headers;
       },
     })(args, api, extraOptions);
@@ -92,7 +91,7 @@ const customBaseQuery = async (args: any, api: any, extraOptions: any) => {
 export const apiService = createApi({
   reducerPath: 'api', // Redux 스토어에서 사용할 경로
   baseQuery: customBaseQuery, // 위에서 정의한 커스텀 baseQuery 사용
-  tagTypes: ['Post', 'User', 'Comment'], // 캐시 태그 타입들
+  tagTypes: ['Post', 'User', 'Comment', 'Profile', 'Follow'], // 캐시 태그 타입들
   endpoints: (builder) => ({
     // 🔐 인증 관련 API 엔드포인트들
 
@@ -118,6 +117,40 @@ export const apiService = createApi({
     getProfile: builder.query<User, void>({
       query: () => '/auth/profile',
       providesTags: ['User'], // User 태그로 캐시 관리
+    }),
+
+    // 특정 사용자의 프로필 정보 가져오기
+    getUserProfile: builder.query<any, number>({
+      query: (userId) => `/users/profiles/${userId}`,
+      providesTags: (result, error, userId) => [{ type: 'Profile', id: userId }], // 특정 사용자 프로필 캐시
+    }),
+
+    // 팔로워 목록 가져오기
+    getFollowers: builder.query<any[], number>({
+      query: (userId) => `/user/users/${userId}/followers`,
+      providesTags: (result, error, userId) => [{ type: 'Follow', id: `followers-${userId}` }],
+    }),
+
+    // 팔로잉 목록 가져오기
+    getFollowings: builder.query<any[], number>({
+      query: (userId) => `/user/users/${userId}/followings`,
+      providesTags: (result, error, userId) => [{ type: 'Follow', id: `followings-${userId}` }],
+    }),
+
+    // 프로필 생성
+    createProfile: builder.mutation<any, { bio?: string; profileImageUrl?: string }>({
+      query: (profileData) => ({
+        url: '/users/profiles',
+        method: 'POST',
+        body: profileData,
+      }),
+      invalidatesTags: ['Profile', 'User'], // 프로필 생성 후 캐시 무효화
+    }),
+
+    // 사용자 검색
+    searchUsers: builder.query<any[], string>({
+      query: (searchKeyword) => `/search/${searchKeyword}`,
+      providesTags: (result, error, searchKeyword) => [{ type: 'User', id: `search-${searchKeyword}` }],
     }),
 
     // 📄 포스트 관련 API 엔드포인트들
@@ -173,11 +206,7 @@ export const apiService = createApi({
 
     // 👤 사용자 관련 API 엔드포인트들
 
-    // 특정 사용자 프로필 가져오기
-    getUserProfile: builder.query<User, number>({
-      query: (userId) => `/users/${userId}`,
-      providesTags: (result, error, id) => [{ type: 'User', id }], // 특정 사용자 캐시
-    }),
+
 
     // 내 프로필 정보 수정
     updateProfile: builder.mutation<User, { username?: string; profileImage?: File }>({
@@ -210,8 +239,12 @@ export const {
   useCreateCommentMutation, // 댓글 작성 훅
 
   // 사용자 관련 훅들
-  useGetUserProfileQuery,  // 사용자 프로필 가져오기 훅
+  useGetUserProfileQuery,  // 특정 사용자 프로필 가져오기 훅
+  useGetFollowersQuery,    // 팔로워 목록 가져오기 훅
+  useGetFollowingsQuery,   // 팔로잉 목록 가져오기 훅
+  useCreateProfileMutation, // 프로필 생성 훅
   useUpdateProfileMutation, // 프로필 수정 훅
+  useSearchUsersQuery,     // 사용자 검색 훅
 } = apiService;
 
 // ========================================
@@ -221,7 +254,13 @@ export const {
 // 모든 컴포넌트에서 import { apiClient } from '@/lib/api'로 사용
 
 export const apiClient = new Api({
-  baseURL: 'http://localhost:8080',
-  timeout: 10000,
-  withCredentials: true, // HTTP-only 쿠키 지원
+  baseUrl: 'http://localhost:8080',
+  customFetch: (...fetchParams: Parameters<typeof fetch>) => {
+    // HTTP-only 쿠키 지원을 위한 customFetch
+    const [input, init = {}] = fetchParams;
+    return fetch(input, {
+      ...init,
+      credentials: 'include', // HTTP-only 쿠키 포함
+    });
+  },
 }); 

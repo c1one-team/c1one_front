@@ -9,7 +9,7 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
-    "generate:api": "swagger-typescript-api generate --input './docs/swagger.json' -o ./src/api -n api.ts --axios --unwrap-response"
+    "generate:api": "swagger-typescript-api generate -p docs/swagger.json -o src/api -n api.ts --type-only"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",

@@ -7,7 +7,9 @@
 // 📦 필요한 컴포넌트들을 가져오기
 import { Outlet } from 'react-router-dom'; // 하위 페이지를 표시할 자리
 import { Sidebar } from '@/components/Sidebar';
+import { SearchPanel } from '@/components/SearchPanel';
 import AuthWrapper from '@/components/AuthWrapper';
+import { Toaster } from '@/components/ui/toaster';
 
 const Layout = () => {
   return (
@@ -17,7 +19,10 @@ const Layout = () => {
         <main className="flex-1 overflow-hidden">
           <Outlet />
         </main>
+        {/* 검색 패널 - 사이드바 위에 오버레이로 표시 */}
+        <SearchPanel />
       </div>
+      <Toaster />
     </AuthWrapper>
   );
 };
