@@ -45,12 +45,14 @@ const UserProfilePage = () => {
       const isServerError = errorStatus === 500 || errorStatus === 404;
       
       if (isServerError) {
+        const errorMessage = "프로필을 생성하지 않은 유저입니다.";
         console.log('🚨 서버 에러 발생 - 존재하지 않는 사용자로 판단하여 홈으로 리다이렉트');
+        console.log('🍞 Toast 메시지 표시:', errorMessage);
         
         toast({
           variant: "destructive",
           title: "오류",
-          description: "존재하지 않는 유저입니다.",
+          description: errorMessage,
         });
         
         navigate("/");
