@@ -199,6 +199,24 @@ export const apiService = createApi({
       invalidatesTags: ['Profile', 'User'], // 프로필 생성 후 캐시 무효화
     }),
 
+    // 팔로우 하기
+    createFollow: builder.mutation<void, number>({
+      query: (targetUserId) => ({
+        url: `/user/follows/${targetUserId}`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['Follow'], // 팔로우 관련 캐시 무효화
+    }),
+
+    // 언팔로우 하기
+    unfollow: builder.mutation<void, number>({
+      query: (targetUserId) => ({
+        url: `/user/follows/${targetUserId}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Follow'], // 팔로우 관련 캐시 무효화
+    }),
+
     // 사용자 검색
     searchUsers: builder.query<any[], string>({
       query: (searchKeyword) => `/search/${searchKeyword}`,
@@ -322,6 +340,8 @@ export const {
   useCreateProfileMutation, // 프로필 생성 훅
   useUpdateProfileMutation, // 프로필 수정 훅
   useSearchUsersQuery,     // 사용자 검색 훅
+  useCreateFollowMutation, // 팔로우 하기 훅
+  useUnfollowMutation,     // 언팔로우 하기 훅
   
   // postApi.tsx에서 사용하던 훅들 추가
   useGetUserPostsQuery,    // 사용자 게시물 목록 가져오기 훅
