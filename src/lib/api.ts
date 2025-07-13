@@ -6,6 +6,7 @@
 
 // 📦 필요한 라이브러리 가져오기
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { Api } from '@/api/api'; // Swagger 생성 API 클래스
 
 // 📝 API 응답 데이터의 타입 정의 (TypeScript)
 // 이렇게 타입을 정의하면 코드 작성 시 자동완성과 오류 검사를 받을 수 있습니다
@@ -211,4 +212,16 @@ export const {
   // 사용자 관련 훅들
   useGetUserProfileQuery,  // 사용자 프로필 가져오기 훅
   useUpdateProfileMutation, // 프로필 수정 훅
-} = apiService; 
+} = apiService;
+
+// ========================================
+// 🌐 전역 API 클라이언트 설정
+// ========================================
+// Swagger로 생성된 API 클래스의 전역 인스턴스
+// 모든 컴포넌트에서 import { apiClient } from '@/lib/api'로 사용
+
+export const apiClient = new Api({
+  baseURL: 'http://localhost:8080',
+  timeout: 10000,
+  withCredentials: true, // HTTP-only 쿠키 지원
+}); 

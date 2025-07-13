@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Api, SigninRequest } from '@/api/api';
-import customAxiosInstance from '@/lib/axios';
+import { SigninRequest } from '@/api/api';
+import { apiClient } from '@/lib/api';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useForm } from 'react-hook-form';
@@ -21,8 +21,7 @@ const LoginPage: React.FC = () => {
     const dispatch = useDispatch();
 
 
-    // API 클라이언트 인스턴스 생성 (토큰 인터셉터가 설정된 axios 사용)
-    const apiClient = new Api(customAxiosInstance);
+    // 전역 API 클라이언트 사용
 
 
     const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>();
@@ -37,6 +36,7 @@ const LoginPage: React.FC = () => {
             // 🗑️ 로그인 시작 전에 기존 인증 정보 제거 (새로운 토큰을 받기 위해)
             console.log('🗑️ 기존 토큰 및 사용자 정보 제거 중...');
             removeToken(); // localStorage에서 기존 토큰 제거
+            localStorage.removeItem('currentUsername'); // localStorage에서 기존 currentUsername 제거
             dispatch(clearUser()); // Redux에서 기존 사용자 정보 제거
 
             // Swagger API 사용
@@ -76,12 +76,29 @@ const LoginPage: React.FC = () => {
                     console.log('🍪 백엔드에서 HTTP-only 쿠키도 설정됨 (withCredentials: true로 자동 포함)');
 
                     // Redux 상태 업데이트 (slice 사용)
+                    // 백엔드 응답에서 사용자 정보 추출
+                    const userInfo = responseData.user || {};
+                    
+                    const currentUsername = userInfo.username || data.username;
+                    
                     dispatch(setLogin({
-                        id: user.id,
-                        username: user.username,
-                        profileImage: 'https://via.placeholder.com/50x50/4ECDC4/FFFFFF?text=' + user.username.toUpperCase(),
-                        role: user.role // ADMIN or USER
+                        id: userInfo.id || responseData.id || 1, // 백엔드 응답에서 실제 사용자 ID 사용
+                        username: currentUsername, // 백엔드 응답 우선, 없으면 입력값 사용
+                        profileImage: userInfo.profileImage || 'https://via.placeholder.com/50x50/4ECDC4/FFFFFF?text=USER',
+                        role: userInfo.role || 'USER' // 백엔드 응답에서 실제 사용자 역할 사용
+
                     }));
+                    
+                                          // localStorage에도 currentUsername 저장
+                      localStorage.setItem('currentUsername', currentUsername);
+                      console.log('✅ localStorage에 currentUsername 저장:', currentUsername);
+                    
+                    console.log('✅ Redux에 저장된 사용자 정보:', {
+                        id: userInfo.id || responseData.id || 1,
+                        username: currentUsername,
+                        role: userInfo.role || 'USER'
+                    });
+                    console.log('✅ currentUsername으로 저장된 username:', currentUsername);
                     console.log('✅ Redux 상태 업데이트 완료');
 
                     // 3. redirectUrl 무시하고 index.tsx로 리다이렉트

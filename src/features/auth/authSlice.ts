@@ -13,12 +13,14 @@ interface User {
 interface AuthState {
   isAuthenticated: boolean;
   user: User | null;
+  currentUsername: string | null; // username을 currentUsername으로 저장
 }
 
 // 🎯 초기 상태
 const initialState: AuthState = {
   isAuthenticated: false,
   user: null,
+  currentUsername: null,
 };
 
 // 🏗️ 인증 슬라이스 생성
@@ -30,24 +32,28 @@ export const authSlice = createSlice({
     setLogin: (state, action: PayloadAction<User>) => {
       state.isAuthenticated = true;
       state.user = action.payload;
+      state.currentUsername = action.payload.username; // username을 currentUsername으로 저장
     },
     
     // 🚪 로그아웃 액션
     setLogout: (state) => {
       state.isAuthenticated = false;
       state.user = null;
+      state.currentUsername = null;
     },
     
     // 👤 사용자 정보 설정 액션 (AuthWrapper에서 사용)
     setUser: (state, action: PayloadAction<User>) => {
       state.isAuthenticated = true;
       state.user = action.payload;
+      state.currentUsername = action.payload.username; // username을 currentUsername으로 저장
     },
     
     // 🗑️ 사용자 정보 삭제 액션 (AuthWrapper에서 사용)
     clearUser: (state) => {
       state.isAuthenticated = false;
       state.user = null;
+      state.currentUsername = null;
     },
   },
 });

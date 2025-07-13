@@ -109,18 +109,8 @@ export interface MemberDto {
   username?: string;
 }
 
-export interface ChatMessageDto {
-  /** @format int64 */
-  chatroomId?: number;
-  /** @format int64 */
-  messageId?: number;
-  /** @format int64 */
-  senderId?: number;
-  senderName?: string;
+export interface ChatMessageRequeset {
   message?: string;
-  /** @format date-time */
-  createdAt?: string;
-  isRead?: boolean;
 }
 
 export interface ChatMessageResponse {
@@ -151,21 +141,6 @@ export interface SuccessResponseBoolean {
 export interface SigninRequest {
   username?: string;
   password?: string;
-}
-
-export interface LoginResponse {
-  accessToken?: string;
-  refreshToken?: string;
-  redirectUrl?: string;
-  message?: string;
-  user?: UserDto;
-}
-
-export interface UserDto {
-  /** @format int64 */
-  id?: number;
-  username?: string;
-  role?: string;
 }
 
 export interface Cookie {
@@ -247,14 +222,11 @@ export interface PostUpdateRequest {
   content?: string;
   location?: string;
   remainImageUrls?: string[];
+  newImageUrls?: string[];
 }
 
 export interface CommentUpdateRequest {
   content?: string;
-}
-
-export interface ChatMessageRequeset {
-  message?: string;
 }
 
 export interface SuccessResponseString {
@@ -322,7 +294,6 @@ export interface PostDetailResponse {
   likeCount?: number;
   likeUsers?: LikeUserDto[];
   likedByMe?: boolean;
-  bookmarkedByMe?: boolean;
   comments?: CommentListResponse[];
 }
 
@@ -351,16 +322,16 @@ export interface PageableObject {
   sort?: SortObject;
   /** @format int32 */
   pageNumber?: number;
-  paged?: boolean;
   /** @format int32 */
   pageSize?: number;
+  paged?: boolean;
   unpaged?: boolean;
 }
 
 export interface SortObject {
   empty?: boolean;
-  unsorted?: boolean;
   sorted?: boolean;
+  unsorted?: boolean;
 }
 
 export interface UserPostResponse {
@@ -382,7 +353,6 @@ export interface HomePostResponse {
   likeCount?: number;
   likeUsers?: LikeUserDto[];
   likedByMe?: boolean;
-  bookmarkedByMe?: boolean;
   comments?: CommentResponse[];
 }
 
@@ -452,7 +422,6 @@ export interface ActiveUser {
 import type {
   AxiosInstance,
   AxiosRequestConfig,
-  AxiosResponse,
   HeadersDefaults,
   ResponseType,
 } from "axios";
@@ -583,7 +552,7 @@ export class HttpClient<SecurityDataType = unknown> {
     format,
     body,
     ...params
-  }: FullRequestParams): Promise<AxiosResponse<T>> => {
+  }: FullRequestParams): Promise<T> => {
     const secureParams =
       ((typeof secure === "boolean" ? secure : this.secure) &&
         this.securityWorker &&
@@ -610,17 +579,19 @@ export class HttpClient<SecurityDataType = unknown> {
       body = JSON.stringify(body);
     }
 
-    return this.instance.request({
-      ...requestParams,
-      headers: {
-        ...(requestParams.headers || {}),
-        ...(type ? { "Content-Type": type } : {}),
-      },
-      params: query,
-      responseType: responseFormat,
-      data: body,
-      url: path,
-    });
+    return this.instance
+      .request({
+        ...requestParams,
+        headers: {
+          ...(requestParams.headers || {}),
+          ...(type ? { "Content-Type": type } : {}),
+        },
+        params: query,
+        responseType: responseFormat,
+        data: body,
+        url: path,
+      })
+      .then((response) => response.data);
   };
 }
 
@@ -873,7 +844,7 @@ export class Api<
      */
     sendMessage: (
       chatRoomId: number,
-      data: ChatMessageDto,
+      data: ChatMessageRequeset,
       params: RequestParams = {},
     ) =>
       this.request<ChatMessageResponse, any>({
@@ -928,7 +899,7 @@ export class Api<
      * @secure
      */
     signin: (data: SigninRequest, params: RequestParams = {}) =>
-      this.request<LoginResponse, any>({
+      this.request<object, any>({
         path: `/api/auth/signin`,
         method: "POST",
         body: data,
@@ -1313,11 +1284,10 @@ export class Api<
       }),
 
     /**
-     * @description 유저가 무엇을 어떻게 검색했느냐에 따라 다르게 매핑keyword string formatting 에 따라 (일단 username 만 구현함 추후 수정)!! 관리자 계정은 조회 불가능하게 막음 !!
+     * No description
      *
-     * @tags SearchController
+     * @tags search-controller
      * @name SearchResult
-     * @summary 키워드로 검색
      * @request GET:/api/search/{searchKeyword}
      * @secure
      */
@@ -1330,11 +1300,10 @@ export class Api<
       }),
 
     /**
-     * @description 미구현으로 사용 금지
+     * No description
      *
-     * @tags SearchController
+     * @tags search-controller
      * @name SearchHistory
-     * @summary 작업중
      * @request GET:/api/search/search-history
      * @secure
      */

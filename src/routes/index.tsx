@@ -6,8 +6,8 @@
 
 import React, { useEffect, useState } from 'react';
 // API 클라이언트 import (Swagger 통일)
-import { Api, HomePostResponse } from '@/api/api';
-import customAxiosInstance from '@/lib/axios'; // 토큰 인터셉터가 설정된 axios 인스턴스
+import { HomePostResponse } from '@/api/api';
+import { apiClient } from '@/lib/api';
 // UI 컴포넌트들
 import MainFeed from '@/components/home/MainFeed';     // 게시물 목록을 보여주는 컴포넌트
 import { RightPanel } from '@/components/home/RightPanel'; // 오른쪽 패널 (추천 사용자 등)
@@ -19,8 +19,7 @@ export default function HomePage() {
   const [error, setError] = useState<string | null>(null);
   const [usingDummyData, setUsingDummyData] = useState(false);
 
-  // API 클라이언트 인스턴스 생성 (토큰 인터셉터가 설정된 axios 사용)
-  const api = new Api(customAxiosInstance);
+  // 전역 API 클라이언트 사용
 
   // 더미 데이터 정의 (HomePostResponse 타입으로 통일)
   const dummyPosts: HomePostResponse[] = [
@@ -72,19 +71,19 @@ export default function HomePage() {
       console.log('🔄 백엔드 API 호출 시도: /api/posts/home/following');
       
       // 백엔드 API 호출 (팔로잉 게시물 가져오기)
-      const response = await api.posts.getFollowingRecentPosts();
+      const response = await apiClient.api.getFollowingRecentPosts();
       // 백엔드 API 호출 (추천 게시물 가져오기)
-      // const response = await api.posts.getRecommendedPosts();
+      // const response = await apiClient.api.getRecommendedPosts();
       
       // 응답이 HTML인지 확인 (백엔드 서버가 없을 때)
-      if (typeof response.data === 'string' && (response.data as string).includes('<!DOCTYPE html>')) {
+      if (typeof response === 'string' && (response as string).includes('<!DOCTYPE html>')) {
         throw new Error('백엔드 서버가 HTML을 반환함');
       }
 
       // 백엔드 API 성공
-      console.log('✅ 백엔드 API 성공:', response.data);
+      console.log('✅ 백엔드 API 성공:', response);
       
-      const homePostsArray = Array.isArray(response.data) ? response.data : [];
+      const homePostsArray = Array.isArray(response) ? response : [];
       // 이제 변환 없이 바로 사용
       setPosts(homePostsArray);
       setUsingDummyData(false);
@@ -93,6 +92,7 @@ export default function HomePage() {
       console.error('❌ 백엔드 API 실패, 더미 데이터 사용:', err);
       
       // 백엔드 실패 시 더미 데이터 사용
+      console.log('🧪 HARDCODED: posts 변수에 하드코딩된 더미 데이터 설정:', dummyPosts);
       setPosts(dummyPosts);
       setUsingDummyData(true);
       

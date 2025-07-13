@@ -1,7 +1,8 @@
-import { Api, ChatRoomList, MemberDto } from '@/api/api';
+import { ChatRoomList, MemberDto } from '@/api/api';
+import { apiClient } from '@/lib/api';
 import React, { useEffect, useState } from 'react';
 
-const api = new Api();
+// 전역 API 클라이언트 사용
 interface DMListSidebarProps {
   selectedRoomId: number | null;
   onSelectRoom: (roomId: number) => void;
@@ -54,10 +55,10 @@ export default function DMListSidebar({ onSelectRoom, selectedRoomId }: DMListSi
   // }, []);
 
   useEffect(() => {
-    api.chatrooms.getMyChatRooms()
+    apiClient.api.getMyChatRooms()
       .then(res => {
-        console.log('채팅방 목록 응답:', res.data);
-        setChatRooms(Array.isArray(res.data) ? res.data : []);
+        console.log('채팅방 목록 응답:', res);
+        setChatRooms(Array.isArray(res) ? res : []);
       })
       .catch(() => setChatRooms([]));
   }, []);

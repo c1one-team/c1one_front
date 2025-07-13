@@ -8,14 +8,14 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Separator } from './ui/separator';
 import { Facebook } from 'lucide-react';
-import { Api, SigninRequest } from '@/api/api'; // Api 클래스와 SigninRequest 타입 임포트
-import bcrypt from 'bcryptjs'; // bcrypt 라이브러리 임포트
+import { SigninRequest } from '@/api/api'; // SigninRequest 타입 임포트
+import { apiClient } from '@/lib/api'; // 전역 API 클라이언트
 
 export const LoginForm = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const dispatch = useDispatch();
-  const api = new Api(); // Api 클래스의 인스턴스 생성
+  // 전역 API 클라이언트 사용
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,7 +26,7 @@ export const LoginForm = () => {
       // 비밀번호를 평문으로 전송 (서버에서 해시화 처리)
       console.log('🔄 로그인 요청 전송...');
 
-      const response = await api.api.signin({ username: username, password: password } as SigninRequest);
+      const response = await apiClient.api.signin({ username: username, password: password } as SigninRequest);
 
       // 응답이 HTML인지 확인 (백엔드 서버가 없을 때)
       if (typeof response.data === 'string' && (response.data as string).includes('<!DOCTYPE html>')) {
@@ -39,14 +39,19 @@ export const LoginForm = () => {
       console.log('✅ 백엔드 로그인 성공');
       setToken(token);
 
-      const user = response.data.user;
+      // 백엔드 응답에서 사용자 정보 추출
+      const responseData = response.data as any;
+      const user = responseData.user || responseData; // user 속성이 없으면 전체 데이터를 사용
 
-      dispatch(setLogin({
-        id: user.id,
-        username: user.username,
-        profileImage: 'https://via.placeholder.com/50x50/4ECDC4/FFFFFF?text=USER',
-        role: user.role
-      }));
+      const backendUser = {
+        id: user.id || user.memberId || 1,
+        username: user.username || username,
+        profileImage: user.profileImage || 'https://via.placeholder.com/50x50/4ECDC4/FFFFFF?text=USER',
+        role: user.role || 'USER'
+      };
+
+      console.log('✅ BACKEND: user 변수에 백엔드 응답 사용자 정보 설정:', backendUser);
+      dispatch(setLogin(backendUser));
 
       // 로그인 성공 후 메인 페이지로 리디렉션
       window.location.href = '/';
@@ -59,15 +64,18 @@ export const LoginForm = () => {
 
       // 더미 토큰 생성
       const dummyToken = 'dummy-jwt-token-' + Date.now();
+      console.log('🧪 HARDCODED: token 변수에 하드코딩된 더미 토큰 설정:', dummyToken);
       setToken(dummyToken);
 
       // 더미 로그인
-      dispatch(setLogin({
+      const dummyUser = {
         id: 1,
         username: username,
         profileImage: 'https://via.placeholder.com/50x50/4ECDC4/FFFFFF?text=USER',
         role: 'USER'
-      }));
+      };
+      console.log('🧪 HARDCODED: user 변수에 하드코딩된 더미 사용자 정보 설정:', dummyUser);
+      dispatch(setLogin(dummyUser));
 
       // 로그인 성공 후 메인 페이지로 리디렉션
       window.location.href = '/';

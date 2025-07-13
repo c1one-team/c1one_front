@@ -23,6 +23,9 @@ const MyProfilePage = () => {
       following: 100,
     },
   };
+  
+  // 하드코딩된 사용자 정보 사용 알림
+  console.log('🧪 HARDCODED: user 변수에 하드코딩된 사용자 정보 설정:', user);
 
   const [previewImage, setPreviewImage] = useState<string | null>(user.profileImageUrl);
   const [realName, setRealName] = useState(user.realName);

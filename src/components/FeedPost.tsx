@@ -18,7 +18,11 @@ export const FeedPost: React.FC<FeedPostProps> = ({ post, onCommentClick }) => {
   const imageUrl =
     post.mediaUrls && post.mediaUrls.length > 0
       ? post.mediaUrls[0]
-      : 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400&h=400&fit=crop';
+      : (() => {
+          const fallbackUrl = 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400&h=400&fit=crop';
+          console.log('🧪 HARDCODED: imageUrl 변수에 하드코딩된 대체 이미지 URL 설정:', fallbackUrl);
+          return fallbackUrl;
+        })();
 
   return (
     <>
@@ -46,8 +50,10 @@ export const FeedPost: React.FC<FeedPostProps> = ({ post, onCommentClick }) => {
               <span className="text-xs text-instagram-muted">{post.location || ''}</span>
             </div>
           </div>
+
           <button className="text-instagram-muted hover:text-instagram-text">
             <MoreHorizontal size={20} />
+
           </button>
         </div>
 

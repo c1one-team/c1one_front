@@ -12,6 +12,9 @@ const stories = [
   { id: 8, username: 'yoursha', image: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=100&h=100&fit=crop&crop=face' },
 ];
 
+// 하드코딩된 스토리 데이터 사용 알림
+console.log('🧪 HARDCODED: stories 변수에 하드코딩된 스토리 데이터 설정:', stories);
+
 export const StoryCarousel = () => {
   return (
     <div className="bg-instagram-dark border border-instagram-border rounded-lg p-4">
