@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Heart, MessageSquare, Plus, MoreHorizontal } from 'lucide-react';
 import { HomePostResponse } from '@/api/api';
 import { PostDetailModal } from './PostDetailModal'; // ✅ 모달 import
+import { processMediaUrls } from '@/lib/utils';
 
 interface FeedPostProps {
   post: HomePostResponse;
@@ -15,9 +16,10 @@ export const FeedPost: React.FC<FeedPostProps> = ({ post, onCommentClick }) => {
   const [saved, setSaved] = useState(false);
   const [showModal, setShowModal] = useState(false);
 
+  const processedMediaUrls = processMediaUrls(post.mediaUrls || []);
   const imageUrl =
-    post.mediaUrls && post.mediaUrls.length > 0
-      ? post.mediaUrls[0]
+    processedMediaUrls.length > 0
+      ? processedMediaUrls[0]
       : (() => {
           const fallbackUrl = 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400&h=400&fit=crop';
           console.log('🧪 HARDCODED: imageUrl 변수에 하드코딩된 대체 이미지 URL 설정:', fallbackUrl);

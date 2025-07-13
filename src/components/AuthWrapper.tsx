@@ -98,7 +98,7 @@ const AuthWrapper: React.FC<AuthWrapperProps> = ({ children }) => {
             const fallbackUser = {
               id: 1,
               username: 'authenticated-user',
-              profileImage: 'https://via.placeholder.com/50x50/4ECDC4/FFFFFF?text=USER',
+              profileImage: '',
               role: 'USER'
             };
             

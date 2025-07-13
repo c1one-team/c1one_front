@@ -12,8 +12,8 @@ import { apiClient } from '@/lib/api';
 import MainFeed from '@/components/home/MainFeed';     // 게시물 목록을 보여주는 컴포넌트
 import { RightPanel } from '@/components/home/RightPanel'; // 오른쪽 패널 (추천 사용자 등)
 
-// 🎯 HomePage 컴포넌트 - 메인 페이지
-export default function HomePage() {
+// 🎯 Index 컴포넌트 - 메인 페이지
+const Index = () => {
   const [posts, setPosts] = useState<HomePostResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -164,3 +164,5 @@ export default function HomePage() {
     </div>
   );
 };
+
+export default Index;

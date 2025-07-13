@@ -28,13 +28,13 @@ export const PostImageCarousel: React.FC<PostImageCarouselProps> = ({ images }) 
   if (images.length === 0) return null;
 
   return (
-    <div className="relative w-full h-full max-w-lg mx-auto">
+    <div className="relative w-full h-full">
       {/* Main Image */}
       <div className="relative w-full h-full flex items-center justify-center">
         <img
           src={images[currentIndex]}
           alt={`Post image ${currentIndex + 1}`}
-          className="w-full h-full object-contain max-h-[80vh]"
+          className="w-full h-full object-cover"
         />
 
         {/* Navigation Arrows - Only show if multiple images */}

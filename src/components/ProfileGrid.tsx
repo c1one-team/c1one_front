@@ -1,4 +1,5 @@
 import React from 'react';
+import { processRepresentativeImageUrl } from '@/lib/utils';
 
 interface PostItem {
   postId: number;
@@ -45,7 +46,7 @@ export const ProfileGrid: React.FC<ProfileGridProps> = ({
           className="relative w-full pt-[100%] bg-gray-900 overflow-hidden"
         >
           <img
-            src={post.representativeImageUrl}
+            src={processRepresentativeImageUrl(post.representativeImageUrl)}
             alt={`Post ${post.postId}`}
             className="absolute inset-0 w-full h-full object-cover"
           />

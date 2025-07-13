@@ -8,6 +8,7 @@ import { useSelector } from 'react-redux';
 import { RootState } from '@/app/store';
 import { PostDetailModal } from '@/components/PostDetailModal'; // ✅ 모달 import
 import { apiClient } from '@/lib/api'; // ✅ API 클라이언트 import
+import { processRepresentativeImageUrl } from '@/lib/utils';
 
 const MyProfilePage = () => {
   const [activeTab, setActiveTab] = useState("posts");
@@ -214,7 +215,7 @@ const MyProfilePage = () => {
               {userPosts.content.map((post) => (
                 <img
                   key={post.postId}
-                  src={post.representativeImageUrl}
+                  src={processRepresentativeImageUrl(post.representativeImageUrl)}
                   alt="Post"
                   className="w-full h-32 object-cover cursor-pointer"
                   onClick={() => handleOpenPostDetail(post.postId)} // ✅ 클릭 시 모달 열기
