@@ -7,11 +7,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Camera, Plus, Grid3x3, Bookmark, User, UserPlus, UserMinus } from "lucide-react";
 import { useGetUserPostsQuery } from '@/lib/api';
 import { PostDetailModal } from '@/components/PostDetailModal';
-import { useGetUserProfileQuery, useGetFollowersQuery, useGetFollowingsQuery, useCreateProfileMutation, useCreateFollowMutation } from '@/lib/api';
+import { 
+  useGetUserProfileQuery, 
+  useGetFollowersQuery, 
+  useGetFollowingsQuery, 
+  useCreateProfileMutation, 
+  useCreateFollowMutation,
+  useUnfollowMutation,
+} from '@/lib/api';
 import { processRepresentativeImageUrl, handleImageError, handleImageLoad } from '@/lib/utils';
 
 import { RootState } from '@/app/store';
 import { useToast } from '@/hooks/use-toast';
+
 const UserProfilePage = () => {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
@@ -30,8 +38,10 @@ const UserProfilePage = () => {
   // Redux Toolkit Query 훅들을 사용하여 데이터 가져오기
   const { data: userPosts, isLoading: isPostsLoading } = useGetUserPostsQuery({ userId: Number(userId) });
   const { data: profile, isLoading: isProfileLoading, error: profileError, refetch: refetchProfile } = useGetUserProfileQuery(Number(userId!) || 0);
-  const { data: followers, isLoading: isFollowersLoading } = useGetFollowersQuery(Number(userId!) || 0);
-  const { data: followings, isLoading: isFollowingsLoading } = useGetFollowingsQuery(Number(userId!) || 0);
+  
+  // 🎯 팔로워 및 팔로잉 데이터를 가져올 때, 현재 프로필 사용자의 ID를 사용합니다.
+  const { data: followers, isLoading: isFollowersLoading, refetch: refetchFollowers } = useGetFollowersQuery(Number(userId!) || 0);
+  const { data: followings, isLoading: isFollowingsLoading, refetch: refetchFollowings } = useGetFollowingsQuery(Number(userId!) || 0);
   
   // 통계 계산
   const followersCount = followers?.length || 0;
@@ -43,24 +53,54 @@ const UserProfilePage = () => {
 
   // 🔹 팔로우 관련 뮤테이션 추가
   const [createFollow] = useCreateFollowMutation();
+  const [deleteFollow] = useUnfollowMutation(); // 👈 팔로우 취소 뮤테이션 훅 추가
 
-  // 🔄 팔로우 버튼 클릭 핸들러
+  // 🎯 현재 로그인된 사용자가 이 프로필의 사용자를 팔로우하고 있는지 확인
+  // followers 배열에 현재 로그인된 사용자의 ID가 있는지 확인합니다.
+  const isFollowing = followers?.some(follower => follower.followerId === currentUser?.id);
+
+  // 🔄 팔로우/언팔로우 버튼 클릭 핸들러
   const handleFollowClick = async () => {
-    try {
-      console.log('🔄 팔로우 요청 시작:', userId);
-      await createFollow(Number(userId)).unwrap();
-      console.log('✅ 팔로우 성공');
-      
-      toast({
-        title: "팔로우 성공",
-        description: "사용자를 팔로우했습니다.",
-      });
-    } catch (error) {
-      console.error('❌ 팔로우 실패:', error);
+    if (!currentUser) {
       toast({
         variant: "destructive",
-        title: "팔로우 실패",
-        description: "팔로우 처리 중 오류가 발생했습니다.",
+        title: "로그인 필요",
+        description: "팔로우 기능을 사용하려면 로그인해야 합니다.",
+      });
+      navigate('/login'); // 로그인 페이지로 리다이렉트
+      return;
+    }
+
+    try {
+      if (isFollowing) {
+        // 언팔로우 로직
+        console.log('🔄 언팔로우 요청 시작:', userId);
+        await deleteFollow(Number(userId)).unwrap();
+        console.log('✅ 언팔로우 성공');
+        toast({
+          title: "언팔로우 성공",
+          description: "사용자를 언팔로우했습니다.",
+        });
+      } else {
+        // 팔로우 로직
+        console.log('🔄 팔로우 요청 시작:', userId);
+        await createFollow(Number(userId)).unwrap();
+        console.log('✅ 팔로우 성공');
+        toast({
+          title: "팔로우 성공",
+          description: "사용자를 팔로우했습니다.",
+        });
+      }
+      // 성공 후 팔로워/팔로잉 데이터 새로고침
+      refetchFollowers();
+      refetchFollowings();
+      refetchProfile(); // 프로필 정보도 갱신될 수 있으므로 refetch
+    } catch (error) {
+      console.error('❌ 팔로우/언팔로우 실패:', error);
+      toast({
+        variant: "destructive",
+        title: "작업 실패",
+        description: "팔로우/언팔로우 처리 중 오류가 발생했습니다.",
       });
     }
   };
@@ -83,11 +123,11 @@ const UserProfilePage = () => {
           // 프로필 생성 API 호출
           createProfile({ bio: "", profileImageUrl: "" })
             .unwrap()
-                         .then(() => {
-               console.log('✅ 프로필 생성 성공 - 데이터 다시 가져오기');
-               // 프로필 데이터 다시 가져오기
-               refetchProfile();
-             })
+            .then(() => {
+              console.log('✅ 프로필 생성 성공 - 데이터 다시 가져오기');
+              // 프로필 데이터 다시 가져오기
+              refetchProfile();
+            })
             .catch((createError) => {
               console.error('❌ 프로필 생성 실패:', createError);
               toast({
@@ -144,23 +184,21 @@ const UserProfilePage = () => {
     );
   }
 
-  // 에러 상태
-  if (profileError) {
+  // 에러 상태 (프로필이 없거나 불러오지 못했을 때)
+  if (profileError && !isOwnProfile) { // 본인 프로필이 아니고 에러가 있을 때만 이 화면을 보여줍니다.
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center space-y-4">
           <p className="text-red-500">
-            {isOwnProfile ? '프로필 정보를 불러오는데 실패했습니다.' : '이 사용자의 프로필 정보를 찾을 수 없습니다.'}
+            이 사용자의 프로필 정보를 찾을 수 없습니다.
           </p>
-          {isOwnProfile && (
-            <Button 
-              onClick={() => window.location.reload()} 
-              variant="outline"
-              className="mt-4"
-            >
-              다시 시도
-            </Button>
-          )}
+          <Button 
+            onClick={() => navigate('/')} 
+            variant="outline"
+            className="mt-4"
+          >
+            홈으로 돌아가기
+          </Button>
         </div>
       </div>
     );
@@ -180,23 +218,34 @@ const UserProfilePage = () => {
         <div className="flex-1 space-y-4">
           <div className="flex items-center gap-2 flex-wrap">
             <h2 className="text-2xl font-light text-profile-text">
-              {isOwnProfile ? currentUser?.username || `사용자 ${userId}` : `사용자 ${userId}`}
+              {profile?.username || (isOwnProfile ? currentUser?.username : `사용자 ${userId}`)}
             </h2>
-            <Button
-              variant="secondary"
-              size="sm"
-              className="text-sm px-4 py-1.5"
-              onClick={handleFollowClick}
-            >
-              <UserPlus className="w-4 h-4 mr-2" />
-              팔로우
-            </Button>
+            
+            {/* 🎯 팔로우/언팔로우 버튼 조건부 렌더링 */}
+            {!isOwnProfile && ( // 본인 프로필이 아닐 때만 팔로우/언팔로우 버튼을 보여줍니다.
+              <Button
+                variant="secondary"
+                size="sm"
+                className="text-sm px-4 py-1.5"
+                onClick={handleFollowClick}
+              >
+                {isFollowing ? (
+                  <>
+                    <UserMinus className="w-4 h-4 mr-2" />
+                    언팔로우
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    팔로우
+                  </>
+                )}
+              </Button>
+            )}
+
+            {/* 메시지 버튼은 필요에 따라 유지 또는 제거 */}
             <Button variant="secondary" size="sm" className="text-sm px-4 py-1.5">
               메시지
-            </Button>
-            <Button variant="secondary" size="sm" className="text-sm px-4 py-1.5">
-              <UserMinus className="w-4 h-4 mr-2" />
-              언팔로우
             </Button>
           </div>
 
